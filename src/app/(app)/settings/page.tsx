@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Settings, Volume2, Bell, Moon, Sun, Monitor } from 'lucide-react'
+import { Settings, Volume2, Bell, Moon, Sun, Monitor, Smartphone, Clock, Eye, Palette, Database, Download, Trash2 } from 'lucide-react'
 import { useTheme } from '@/providers/theme-provider'
 import { useTimerStore } from '@/state/useTimerStore'
 import { useSound } from '@/hooks/useSound'
@@ -29,6 +29,20 @@ export default function SettingsPage() {
     autoStartPomodoros: false,
     strictFocusMode: false,
     alarmVolume: 70,
+    // New notification settings
+    desktopNotifications: true,
+    notificationSounds: true,
+    focusReminders: false,
+    breakReminders: true,
+    doNotDisturb: false,
+    // Advanced timer settings
+    showSeconds: false,
+    pauseBehavior: 'pause', // 'pause' | 'stop' | 'continue'
+    maxSessionsPerDay: 0, // 0 = unlimited
+    // UI preferences
+    timerDisplayStyle: 'digital', // 'digital' | 'minimal'
+    enableAnimations: true,
+    compactMode: false,
   })
 
   // Load settings from timer store
@@ -94,9 +108,9 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl">
         {/* Timer Settings */}
-        <Card>
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Settings className="h-5 w-5" />
@@ -176,10 +190,11 @@ export default function SettingsPage() {
               </div>
             </div>
           </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
         </Card>
 
         {/* Auto-start Settings */}
-        <Card>
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <CardTitle>Auto-start Settings</CardTitle>
             <CardDescription>
@@ -224,10 +239,11 @@ export default function SettingsPage() {
               />
             </div>
           </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
         </Card>
 
         {/* Sound Settings */}
-        <Card>
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Volume2 className="h-5 w-5" />
@@ -256,10 +272,196 @@ export default function SettingsPage() {
               Test Sound
             </Button>
           </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
+        </Card>
+
+        {/* Notification Settings */}
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Smartphone className="h-5 w-5" />
+              <span>Notifications</span>
+            </CardTitle>
+            <CardDescription>
+              Configure alerts and reminders
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Desktop notifications</Label>
+                <p className="text-sm text-muted-foreground">
+                  Show browser notifications when timer ends
+                </p>
+              </div>
+              <Switch
+                checked={settings.desktopNotifications}
+                onCheckedChange={(checked) => handleSettingChange('desktopNotifications', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Notification sounds</Label>
+                <p className="text-sm text-muted-foreground">
+                  Play sounds with notifications
+                </p>
+              </div>
+              <Switch
+                checked={settings.notificationSounds}
+                onCheckedChange={(checked) => handleSettingChange('notificationSounds', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Focus reminders</Label>
+                <p className="text-sm text-muted-foreground">
+                  Gentle reminders to stay focused
+                </p>
+              </div>
+              <Switch
+                checked={settings.focusReminders}
+                onCheckedChange={(checked) => handleSettingChange('focusReminders', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Break reminders</Label>
+                <p className="text-sm text-muted-foreground">
+                  Remind to take breaks
+                </p>
+              </div>
+              <Switch
+                checked={settings.breakReminders}
+                onCheckedChange={(checked) => handleSettingChange('breakReminders', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Do Not Disturb</Label>
+                <p className="text-sm text-muted-foreground">
+                  Pause notifications during focus
+                </p>
+              </div>
+              <Switch
+                checked={settings.doNotDisturb}
+                onCheckedChange={(checked) => handleSettingChange('doNotDisturb', checked)}
+              />
+            </div>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
+        </Card>
+
+        {/* Advanced Timer Settings */}
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Clock className="h-5 w-5" />
+              <span>Advanced Timer</span>
+            </CardTitle>
+            <CardDescription>
+              Fine-tune timer behavior
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Show seconds</Label>
+                <p className="text-sm text-muted-foreground">
+                  Display seconds in timer
+                </p>
+              </div>
+              <Switch
+                checked={settings.showSeconds}
+                onCheckedChange={(checked) => handleSettingChange('showSeconds', checked)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Pause behavior</Label>
+              <Select value={settings.pauseBehavior} onValueChange={(value) => handleSettingChange('pauseBehavior', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pause">Pause timer</SelectItem>
+                  <SelectItem value="stop">Stop timer</SelectItem>
+                  <SelectItem value="continue">Continue in background</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Max sessions per day</Label>
+              <Input
+                type="number"
+                value={settings.maxSessionsPerDay || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : parseInt(e.target.value)
+                  if (!isNaN(value)) {
+                    handleSettingChange('maxSessionsPerDay', value)
+                  }
+                }}
+                min="0"
+                max="50"
+                placeholder="0 = unlimited"
+              />
+            </div>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
+        </Card>
+
+        {/* UI Preferences */}
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Palette className="h-5 w-5" />
+              <span>UI Preferences</span>
+            </CardTitle>
+            <CardDescription>
+              Customize the interface
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Timer display style</Label>
+              <Select value={settings.timerDisplayStyle} onValueChange={(value) => handleSettingChange('timerDisplayStyle', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="digital">Digital</SelectItem>
+                  <SelectItem value="minimal">Minimal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Enable animations</Label>
+                <p className="text-sm text-muted-foreground">
+                  Show smooth transitions
+                </p>
+              </div>
+              <Switch
+                checked={settings.enableAnimations}
+                onCheckedChange={(checked) => handleSettingChange('enableAnimations', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Compact mode</Label>
+                <p className="text-sm text-muted-foreground">
+                  Use less space
+                </p>
+              </div>
+              <Switch
+                checked={settings.compactMode}
+                onCheckedChange={(checked) => handleSettingChange('compactMode', checked)}
+              />
+            </div>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
         </Card>
 
         {/* Theme Settings */}
-        <Card>
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>
@@ -296,14 +498,66 @@ export default function SettingsPage() {
               </Select>
             </div>
           </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
         </Card>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button className="px-8" onClick={handleSaveSettings}>
-            Save Settings
-          </Button>
-        </div>
+        {/* Data Management */}
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Database className="h-5 w-5" />
+              <span>Data Management</span>
+            </CardTitle>
+            <CardDescription>
+              Manage your data and privacy
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Auto-save preferences</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically save settings changes
+                </p>
+              </div>
+              <Switch
+                checked={true}
+                disabled
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Export data</Label>
+              <Button variant="outline" className="w-full" onClick={() => toast.info('Export feature coming soon!')}>
+                <Download className="mr-2 h-4 w-4" />
+                Export Session History
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label>Reset data</Label>
+              <Button variant="outline" className="w-full" onClick={() => toast.info('Reset feature coming soon!')}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear All Data
+              </Button>
+            </div>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
+        </Card>
+
+        {/* Save Settings */}
+        <Card className="group relative overflow-hidden rounded-xl border bg-background hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <CardTitle>Save Changes</CardTitle>
+            <CardDescription>
+              Apply your settings to the timer
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center">
+            <Button className="px-8" onClick={handleSaveSettings}>
+              Save Settings
+            </Button>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-100 transition-opacity duration-300 pointer-events-none" />
+        </Card>
       </div>
     </div>
   )

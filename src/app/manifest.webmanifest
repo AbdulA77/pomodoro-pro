@@ -1,6 +1,6 @@
 {
-  "name": "Pomodoro Pro",
-  "short_name": "Pomodoro Pro",
+  "name": "Flowdoro",
+  "short_name": "Flowdoro",
   "description": "A high-precision Pomodoro timer designed for developers",
   "start_url": "/",
   "display": "standalone",

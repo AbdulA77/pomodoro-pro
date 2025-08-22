@@ -1,27 +1,40 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { taskSchema, type TaskInput } from '@/lib/validators'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, FileText, Play } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Plus, Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { taskSchema, TaskInput } from '@/lib/validators'
 import { toast } from 'sonner'
 
-interface TaskFormProps {
+interface Template {
+  id: string
+  name: string
+  description?: string
+  priority: string
+  estimatePomodoros: number
+  projectId?: string
+  tags: string
+  project?: {
+    id: string
+    name: string
+    color: string
+  }
+}
+
+interface UseTemplateButtonProps {
+  template: Template
   onTaskCreated?: () => void
-  trigger?: React.ReactNode
   projects?: Array<{
     id: string
     name: string
@@ -29,19 +42,21 @@ interface TaskFormProps {
   }>
 }
 
-export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
+export function UseTemplateButton({ template, onTaskCreated, projects = [] }: UseTemplateButtonProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<TaskInput>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: '',
-      description: '',
+      title: template.name,
+      description: template.description || '',
       status: 'TODO',
-      priority: 'MEDIUM',
-      estimatePomodoros: 1,
+      priority: template.priority as any,
+      estimatePomodoros: template.estimatePomodoros,
+      projectId: template.projectId || '',
       dueAt: '',
+      tags: template.tags ? template.tags.split(',').map(tag => tag.trim()) : [],
     },
   })
 
@@ -60,14 +75,13 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
         throw new Error('Failed to create task')
       }
 
-      const task = await response.json()
-      toast.success('Task created successfully!')
-      form.reset()
+      toast.success('Task created from template successfully!')
       setOpen(false)
+      form.reset()
       onTaskCreated?.()
     } catch (error) {
-      console.error('Error creating task:', error)
-      toast.error('Failed to create task. Please try again.')
+      console.error('Error creating task from template:', error)
+      toast.error('Failed to create task from template')
     } finally {
       setIsLoading(false)
     }
@@ -76,18 +90,16 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Task
-          </Button>
-        )}
+        <Button variant="outline" size="sm" className="h-8 px-3">
+          <Play className="h-4 w-4 mr-1" />
+          Use Template
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>Create Task from Template</DialogTitle>
           <DialogDescription>
-            Add a new task to your Pomodoro workflow. Set priorities and estimates to track your progress.
+            Customize the task details below. The template values have been pre-filled for you.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -97,7 +109,7 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Task Title</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter task title..." {...field} />
                   </FormControl>
@@ -114,15 +126,11 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe your task..." 
+                      placeholder="Enter task description..." 
                       className="resize-none" 
-                      rows={3}
                       {...field} 
                     />
                   </FormControl>
-                  <FormDescription>
-                    Optional description to help you remember what this task involves.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -200,9 +208,6 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                       />
                     </FormControl>
-                    <FormDescription>
-                      How many 25-min focus sessions?
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -228,7 +233,7 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
                           {field.value ? (
                             format(new Date(field.value), "PPP")
                           ) : (
-                            <span>Pick a due date</span>
+                            <span>Pick a due date (optional)</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -244,33 +249,6 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
                       />
                     </PopoverContent>
                   </Popover>
-                  <FormDescription>
-                    Optional due date for this task
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="BACKLOG">Backlog</SelectItem>
-                      <SelectItem value="TODO">To Do</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="DONE">Done</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -286,8 +264,7 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Task
+                {isLoading ? 'Creating...' : 'Create Task'}
               </Button>
             </DialogFooter>
           </form>

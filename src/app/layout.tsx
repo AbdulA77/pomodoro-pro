@@ -9,22 +9,22 @@ import { Toaster } from 'sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Pomodoro Pro - Focus Timer for Developers',
+  title: 'Flowdoro - Focus Timer for Developers',
   description: 'A high-precision Pomodoro timer designed for developers with task management, analytics, and keyboard-first workflow.',
   keywords: ['pomodoro', 'timer', 'productivity', 'focus', 'developer', 'time management'],
-  authors: [{ name: 'Pomodoro Pro' }],
-  creator: 'Pomodoro Pro',
+  authors: [{ name: 'Flowdoro' }],
+  creator: 'Flowdoro',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://pomodoro-pro.vercel.app',
-    title: 'Pomodoro Pro - Focus Timer for Developers',
+    title: 'Flowdoro - Focus Timer for Developers',
     description: 'A high-precision Pomodoro timer designed for developers with task management, analytics, and keyboard-first workflow.',
-    siteName: 'Pomodoro Pro',
+    siteName: 'Flowdoro',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Pomodoro Pro - Focus Timer for Developers',
+    title: 'Flowdoro - Focus Timer for Developers',
     description: 'A high-precision Pomodoro timer designed for developers with task management, analytics, and keyboard-first workflow.',
   },
   manifest: '/manifest.webmanifest',

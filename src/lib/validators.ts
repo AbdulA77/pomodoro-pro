@@ -32,6 +32,17 @@ export const projectSchema = z.object({
   color: z.string().default('blue'),
 })
 
+// Task template schemas
+export const taskTemplateSchema = z.object({
+  name: z.string().min(1, 'Template name is required'),
+  description: z.string().optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
+  estimatePomodoros: z.number().int().min(1).default(1),
+  projectId: z.string().optional(),
+  tags: z.string().optional(), // Store as comma-separated string
+  isActive: z.boolean().default(true),
+})
+
 // Timer session schemas
 export const timerSessionSchema = z.object({
   taskId: z.string().optional(),
@@ -75,6 +86,7 @@ export type SignInInput = z.infer<typeof signInSchema>
 export type TaskInput = z.infer<typeof taskSchema>
 export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>
 export type ProjectInput = z.infer<typeof projectSchema>
+export type TaskTemplateInput = z.infer<typeof taskTemplateSchema>
 export type TimerSessionInput = z.infer<typeof timerSessionSchema>
 export type UserSettingsInput = z.infer<typeof userSettingsSchema>
 export type TagInput = z.infer<typeof tagSchema>

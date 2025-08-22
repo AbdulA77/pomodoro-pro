@@ -20,6 +20,10 @@ interface TimerState {
   // Worker reference
   worker: Worker | null
   
+  // Session tracking
+  sessionStartTime: Date | null
+  sessionInterruptions: number
+  
   // Actions
   initialize: (config: TimeConfig) => void
   start: () => void
@@ -30,6 +34,7 @@ interface TimerState {
   setCurrentTask: (taskId: string | null) => void
   updateConfig: (config: Partial<TimeConfig>) => void
   cleanup: () => void
+  saveSession: () => Promise<void>
 }
 
 const defaultConfig: TimeConfig = {
@@ -54,6 +59,8 @@ export const useTimerStore = create<TimerState>()(
       config: defaultConfig,
       currentTaskId: null,
       worker: null,
+      sessionStartTime: null,
+      sessionInterruptions: 0,
       
       // Initialize timer with config
       initialize: (config: TimeConfig) => {
@@ -73,7 +80,13 @@ export const useTimerStore = create<TimerState>()(
           set({ remainingMs: remaining })
           
           if (isComplete) {
-            const { phase, currentInterval, config } = get()
+            const { phase, currentInterval, config, sessionStartTime, sessionInterruptions, currentTaskId } = get()
+            
+            // Save the completed session
+            if (sessionStartTime) {
+              get().saveSession()
+            }
+            
             const { phase: nextPhase, interval: nextInterval } = getNextPhase(
               phase,
               currentInterval,
@@ -86,6 +99,8 @@ export const useTimerStore = create<TimerState>()(
               remainingMs: getPhaseDuration(nextPhase, config),
               isRunning: false,
               isPaused: false,
+              sessionStartTime: null,
+              sessionInterruptions: 0,
             })
             
             // Auto-start next phase if configured
@@ -125,6 +140,8 @@ export const useTimerStore = create<TimerState>()(
             type: 'START',
             duration: getPhaseDuration(phase, config),
           })
+          // Track session start time for new sessions
+          set({ sessionStartTime: new Date(), sessionInterruptions: 0 })
         }
         
         set({ isRunning: true, isPaused: false })
@@ -132,12 +149,16 @@ export const useTimerStore = create<TimerState>()(
       
       // Pause timer
       pause: () => {
-        const { worker } = get()
+        const { worker, sessionInterruptions } = get()
         
         if (!worker) return
         
         worker.postMessage({ type: 'PAUSE' })
-        set({ isRunning: false, isPaused: true })
+        set({ 
+          isRunning: false, 
+          isPaused: true,
+          sessionInterruptions: sessionInterruptions + 1
+        })
       },
       
       // Reset timer
@@ -155,6 +176,8 @@ export const useTimerStore = create<TimerState>()(
           remainingMs: getPhaseDuration(phase, config),
           isRunning: false,
           isPaused: false,
+          sessionStartTime: null,
+          sessionInterruptions: 0,
         })
       },
       
@@ -178,6 +201,8 @@ export const useTimerStore = create<TimerState>()(
           remainingMs: getPhaseDuration(nextPhase, config),
           isRunning: false,
           isPaused: false,
+          sessionStartTime: null,
+          sessionInterruptions: 0,
         })
       },
       
@@ -223,6 +248,40 @@ export const useTimerStore = create<TimerState>()(
         })
       },
       
+      // Save session to database
+      saveSession: async () => {
+        const { phase, sessionStartTime, sessionInterruptions, currentTaskId, config } = get()
+        
+        if (!sessionStartTime) return
+        
+        const sessionEndTime = new Date()
+        const durationSec = Math.floor((sessionEndTime.getTime() - sessionStartTime.getTime()) / 1000)
+        
+        try {
+          const response = await fetch('/api/sessions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              phase,
+              taskId: currentTaskId,
+              startedAt: sessionStartTime.toISOString(),
+              endedAt: sessionEndTime.toISOString(),
+              durationSec,
+              completed: true,
+              interruptions: sessionInterruptions,
+            }),
+          })
+          
+          if (!response.ok) {
+            console.error('Failed to save session')
+          }
+        } catch (error) {
+          console.error('Error saving session:', error)
+        }
+      },
+      
       // Cleanup worker
       cleanup: () => {
         const { worker } = get()
@@ -241,6 +300,8 @@ export const useTimerStore = create<TimerState>()(
         currentTaskId: state.currentTaskId,
         currentInterval: state.currentInterval,
         totalIntervals: state.totalIntervals,
+        sessionStartTime: state.sessionStartTime,
+        sessionInterruptions: state.sessionInterruptions,
       }),
     }
   )

@@ -120,3 +120,61 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes wave {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  @keyframes wave-once {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  @keyframes flow {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  @keyframes bounce-subtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+  
+  .animate-wave {
+    animation: wave 2s ease-in-out infinite;
+  }
+  
+  .animate-wave-once {
+    animation: wave-once 1.5s ease-out forwards;
+  }
+  
+  .animate-flow {
+    animation: flow 3s ease-in-out infinite;
+  }
+  
+  .animate-flow-delayed {
+    animation: flow 3s ease-in-out infinite 1.5s;
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+}

@@ -60,38 +60,50 @@ async function main() {
 
   // Create tags
   const tags = await Promise.all([
-    prisma.tag.create({
-      data: {
+    prisma.tag.upsert({
+      where: { userId_name: { userId: user.id, name: 'urgent' } },
+      update: {},
+      create: {
         userId: user.id,
         name: 'urgent',
       }
     }),
-    prisma.tag.create({
-      data: {
+    prisma.tag.upsert({
+      where: { userId_name: { userId: user.id, name: 'bugfix' } },
+      update: {},
+      create: {
         userId: user.id,
         name: 'bugfix',
       }
     }),
-    prisma.tag.create({
-      data: {
+    prisma.tag.upsert({
+      where: { userId_name: { userId: user.id, name: 'feature' } },
+      update: {},
+      create: {
         userId: user.id,
         name: 'feature',
       }
     }),
-    prisma.tag.create({
-      data: {
+    prisma.tag.upsert({
+      where: { userId_name: { userId: user.id, name: 'research' } },
+      update: {},
+      create: {
         userId: user.id,
         name: 'research',
       }
     }),
-    prisma.tag.create({
-      data: {
+    prisma.tag.upsert({
+      where: { userId_name: { userId: user.id, name: 'refactor' } },
+      update: {},
+      create: {
         userId: user.id,
         name: 'refactor',
       }
     }),
-    prisma.tag.create({
-      data: {
+    prisma.tag.upsert({
+      where: { userId_name: { userId: user.id, name: 'documentation' } },
+      update: {},
+      create: {
         userId: user.id,
         name: 'documentation',
       }
@@ -100,8 +112,11 @@ async function main() {
 
   // Create tasks
   const tasks = await Promise.all([
-    prisma.task.create({
-      data: {
+    prisma.task.upsert({
+      where: { id: 'task-1' },
+      update: {},
+      create: {
+        id: 'task-1',
         userId: user.id,
         projectId: projects[0].id, // Work
         title: 'Fix authentication bug',
@@ -267,6 +282,65 @@ async function main() {
         durationSec: 25 * 60,
         completed: true,
         interruptions: 0,
+      }
+    })
+  ])
+
+  // Create sample task templates
+  const templates = await Promise.all([
+    prisma.taskTemplate.create({
+      data: {
+        userId: user.id,
+        name: 'Code Review',
+        description: 'Review pull requests and provide feedback',
+        priority: 'MEDIUM',
+        estimatePomodoros: 2,
+        projectId: projects[0].id, // Work
+        tags: 'review,code,feedback',
+      }
+    }),
+    prisma.taskTemplate.create({
+      data: {
+        userId: user.id,
+        name: 'Daily Standup',
+        description: 'Prepare for and attend daily team standup meeting',
+        priority: 'HIGH',
+        estimatePomodoros: 1,
+        projectId: projects[0].id, // Work
+        tags: 'meeting,standup,daily',
+      }
+    }),
+    prisma.taskTemplate.create({
+      data: {
+        userId: user.id,
+        name: 'Documentation Update',
+        description: 'Update project documentation and README files',
+        priority: 'LOW',
+        estimatePomodoros: 3,
+        projectId: projects[0].id, // Work
+        tags: 'documentation,writing,maintenance',
+      }
+    }),
+    prisma.taskTemplate.create({
+      data: {
+        userId: user.id,
+        name: 'Study Session',
+        description: 'Dedicated time for learning new technologies or concepts',
+        priority: 'MEDIUM',
+        estimatePomodoros: 4,
+        projectId: projects[1].id, // Learning
+        tags: 'learning,study,research',
+      }
+    }),
+    prisma.taskTemplate.create({
+      data: {
+        userId: user.id,
+        name: 'Exercise',
+        description: 'Physical workout or exercise routine',
+        priority: 'HIGH',
+        estimatePomodoros: 2,
+        projectId: projects[2].id, // Personal
+        tags: 'health,fitness,exercise',
       }
     })
   ])

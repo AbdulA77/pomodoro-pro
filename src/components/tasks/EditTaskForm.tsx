@@ -9,39 +9,45 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon } from 'lucide-react'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Plus, Loader2 } from 'lucide-react'
+import { Edit2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-interface TaskFormProps {
-  onTaskCreated?: () => void
-  trigger?: React.ReactNode
-  projects?: Array<{
+interface Task {
+  id: string
+  title: string
+  description: string | null
+  status: string
+  priority: string
+  estimatePomodoros: number
+  completedPomodoros: number
+  project: {
     id: string
     name: string
     color: string
-  }>
+  } | null
+  tags: string[]
 }
 
-export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
+interface EditTaskFormProps {
+  task: Task
+  onTaskUpdated?: () => void
+  trigger?: React.ReactNode
+}
+
+export function EditTaskForm({ task, onTaskUpdated, trigger }: EditTaskFormProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<TaskInput>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      status: 'TODO',
-      priority: 'MEDIUM',
-      estimatePomodoros: 1,
-      dueAt: '',
+      title: task.title,
+      description: task.description || '',
+      status: task.status as any,
+      priority: task.priority as any,
+      estimatePomodoros: task.estimatePomodoros,
     },
   })
 
@@ -49,25 +55,28 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
     setIsLoading(true)
     try {
       const response = await fetch('/api/tasks', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          id: task.id,
+          ...data,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create task')
+        throw new Error('Failed to update task')
       }
 
-      const task = await response.json()
-      toast.success('Task created successfully!')
+      const updatedTask = await response.json()
+      toast.success('Task updated successfully!')
       form.reset()
       setOpen(false)
-      onTaskCreated?.()
+      onTaskUpdated?.()
     } catch (error) {
-      console.error('Error creating task:', error)
-      toast.error('Failed to create task. Please try again.')
+      console.error('Error updating task:', error)
+      toast.error('Failed to update task. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -77,17 +86,17 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Task
+          <Button variant="outline" size="sm">
+            <Edit2 className="mr-2 h-4 w-4" />
+            Edit
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>
-            Add a new task to your Pomodoro workflow. Set priorities and estimates to track your progress.
+            Update your task details and settings.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -127,37 +136,6 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
                 </FormItem>
               )}
             />
-
-            {projects && projects.length > 0 && (
-              <FormField
-                control={form.control}
-                name="projectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project (optional)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">No Project</SelectItem>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            <div className="flex items-center space-x-2">
-                              <div className={`w-3 h-3 rounded-full bg-${project.color}-500`} />
-                              <span>{project.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -211,49 +189,6 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
 
             <FormField
               control={form.control}
-              name="dueAt"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Due Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(new Date(field.value), "PPP")
-                          ) : (
-                            <span>Pick a due date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => field.onChange(date ? date.toISOString() : '')}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormDescription>
-                    Optional due date for this task
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="status"
               render={({ field }) => (
                 <FormItem>
@@ -287,7 +222,7 @@ export function TaskForm({ onTaskCreated, trigger, projects }: TaskFormProps) {
               </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Task
+                Update Task
               </Button>
             </DialogFooter>
           </form>

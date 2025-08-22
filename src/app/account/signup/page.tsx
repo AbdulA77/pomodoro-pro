@@ -67,13 +67,15 @@ export default function SignUpPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create account</CardTitle>
           <CardDescription>
-            Sign up for Pomodoro Pro to get started
+            Sign up for Flowdoro to get started
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {/* Google Sign In */}
-            <GoogleSignInButton className="w-full" showSetupMessage />
+            <GoogleSignInButton className="w-full" showSetupMessage>
+              Sign up with Google
+            </GoogleSignInButton>
             
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
