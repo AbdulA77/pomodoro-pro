@@ -27,7 +27,6 @@ export default async function HomePage() {
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
               Flowdoro
             </h1>
-            <div className="mt-1 h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 rounded-full w-32 mx-auto"></div>
           </div>
           <p className="mb-6 text-lg text-muted-foreground">
             A high-precision Pomodoro timer designed for developers with task management, 

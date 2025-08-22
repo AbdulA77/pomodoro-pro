@@ -79,3 +79,4 @@ export function DeleteTaskButton({ taskId, taskTitle, onTaskDeleted, trigger }: 
     </Dialog>
   )
 }
+

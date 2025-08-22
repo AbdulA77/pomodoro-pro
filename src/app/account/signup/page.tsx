@@ -19,6 +19,7 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    console.log('Form submitted')
     setIsLoading(true)
     setError('')
 
@@ -29,11 +30,16 @@ export default function SignUpPage() {
       password: formData.get('password') as string,
     }
 
+    console.log('Form data:', { ...data, password: '[HIDDEN]' })
+
     try {
       // Validate input
+      console.log('Validating input...')
       const validatedData = signUpSchema.parse(data)
+      console.log('Validation passed')
 
       // Register user
+      console.log('Making API request...')
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -42,14 +48,23 @@ export default function SignUpPage() {
         body: JSON.stringify(validatedData),
       })
 
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.log('Error data:', errorData)
         throw new Error(errorData.error || 'Registration failed')
       }
 
+      const result = await response.json()
+      console.log('Success result:', result)
+
       toast.success('Account created successfully! Please sign in.')
+      console.log('Redirecting to signin...')
       router.push('/account/signin')
     } catch (error) {
+      console.error('Registration error:', error)
       if (error instanceof Error) {
         setError(error.message)
       } else {
@@ -73,7 +88,7 @@ export default function SignUpPage() {
         <CardContent>
           <div className="space-y-4">
             {/* Google Sign In */}
-            <GoogleSignInButton className="w-full" showSetupMessage>
+            <GoogleSignInButton className="w-full">
               Sign up with Google
             </GoogleSignInButton>
             

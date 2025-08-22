@@ -89,3 +89,4 @@ export function QuickStatusUpdate({ taskId, currentStatus, onStatusUpdated }: Qu
     </Select>
   )
 }
+

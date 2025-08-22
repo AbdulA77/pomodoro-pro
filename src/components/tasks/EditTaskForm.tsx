@@ -231,3 +231,4 @@ export function EditTaskForm({ task, onTaskUpdated, trigger }: EditTaskFormProps
     </Dialog>
   )
 }
+

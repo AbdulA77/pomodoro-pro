@@ -72,7 +72,7 @@ export default function SignInPage() {
         <CardContent>
           <div className="space-y-4">
             {/* Google Sign In */}
-            <GoogleSignInButton className="w-full" showSetupMessage />
+            <GoogleSignInButton className="w-full" />
             
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

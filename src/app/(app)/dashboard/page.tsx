@@ -42,6 +42,11 @@ export default function DashboardPage() {
         if (response.ok) {
           const data = await response.json()
           setStats(data)
+        } else if (response.status === 401) {
+          // User not authenticated, this is expected for new users
+          console.log('User not authenticated, showing default stats')
+        } else {
+          console.error('Failed to fetch stats:', response.status)
         }
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -82,7 +87,7 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Flowdoro</h1>
         <p className="text-muted-foreground">
-          Welcome back! Here's Your Productivity Overview.
+          Welcome back! Here&apos;s Your Productivity Overview.
         </p>
       </div>
 
@@ -135,7 +140,7 @@ export default function DashboardPage() {
                 <BarChart3 className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                Today's Progress
+                Today&apos;s Progress
               </h3>
               <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                 Your focus sessions today

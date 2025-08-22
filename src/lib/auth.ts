@@ -5,14 +5,17 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
 import bcrypt from 'bcrypt'
 
+const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Remove PrismaAdapter since we're using JWT strategy
+  // adapter: PrismaAdapter(prisma),
   providers: [
     // Only add Google provider if credentials are configured
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+    ...(googleConfigured ? [
       GoogleProvider({
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       })
     ] : []),
     CredentialsProvider({
@@ -67,6 +70,10 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Simple redirect to dashboard after sign in
+      return `${baseUrl}/dashboard`
     }
   },
   pages: {
