@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String?  @unique
+  passwordHash  String?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  settings      UserSettings?
+  tasks         Task[]
+  projects      Project[]
+  timerSessions TimerSession[]
+  tags          Tag[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id                   String  @id @default(cuid())
+  userId               String  @unique
+  pomodoroMinutes      Int     @default(25)
+  shortBreakMinutes    Int     @default(5)
+  longBreakMinutes     Int     @default(15)
+  intervalsPerLong     Int     @default(4)
+  autoStartBreaks      Boolean @default(true)
+  autoStartPomodoros   Boolean @default(false)
+  strictFocusMode      Boolean @default(false)
+  alarmSound           String  @default("bell.mp3")
+  alarmVolume          Int     @default(70)
+  theme                String  @default("system")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  color     String   @default("blue")
+  tasks     Task[]
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Task {
+  id                 String       @id @default(cuid())
+  userId             String
+  projectId          String?
+  title              String
+  description        String?
+  status             TaskStatus   @default(TODO)
+  priority           TaskPriority @default(MEDIUM)
+  estimatePomodoros  Int          @default(1)
+  completedPomodoros Int          @default(0)
+  dueAt              DateTime?
+  tags               TaskTag[]
+  sessions           TimerSession[]
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([userId, status])
+  @@index([userId, projectId])
+}
+
+model Tag {
+  id     String   @id @default(cuid())
+  userId String
+  name   String
+  tasks  TaskTag[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, name])
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+}
+
+enum Phase {
+  FOCUS
+  SHORT_BREAK
+  LONG_BREAK
+}
+
+model TimerSession {
+  id          String   @id @default(cuid())
+  userId      String
+  taskId      String?
+  phase       Phase
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int      @default(0)
+  completed   Boolean  @default(false)
+  interruptions Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id])
+
+  @@index([userId, startedAt])
+  @@index([userId, phase])
+}
