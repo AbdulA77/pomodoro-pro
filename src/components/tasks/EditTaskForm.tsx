@@ -54,15 +54,12 @@ export function EditTaskForm({ task, onTaskUpdated, trigger }: EditTaskFormProps
   const onSubmit = async (data: TaskInput) => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          id: task.id,
-          ...data,
-        }),
+        body: JSON.stringify(data),
       })
 
       if (!response.ok) {

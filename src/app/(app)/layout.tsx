@@ -18,8 +18,8 @@ export default async function AppLayout({
     <div className="min-h-screen bg-background">
       <AppHeader />
       <div className="flex min-h-screen">
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Main content with top spacing for floating navbar */}
+        <main className="flex-1 pt-24">
           {children}
         </main>
       </div>

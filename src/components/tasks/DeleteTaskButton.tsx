@@ -20,7 +20,7 @@ export function DeleteTaskButton({ taskId, taskTitle, onTaskDeleted, trigger }: 
   const handleDelete = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/tasks?id=${taskId}`, {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
       })
 

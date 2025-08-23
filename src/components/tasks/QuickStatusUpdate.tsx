@@ -27,18 +27,13 @@ export function QuickStatusUpdate({ taskId, currentStatus, onStatusUpdated }: Qu
 
     setIsLoading(true)
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: taskId,
-          title: '', // We'll only update status, but need to provide required fields
-          description: '',
           status: newStatus,
-          priority: 'MEDIUM',
-          estimatePomodoros: 1,
         }),
       })
 
