@@ -10,10 +10,10 @@ import { AnimatedGradient } from '@/components/ui/animated-gradient'
 export default async function HomePage() {
   const session = await getServerSession(authOptions)
 
-  // Redirect authenticated users to dashboard
-  if (session) {
-    redirect('/dashboard')
-  }
+  // Don't redirect authenticated users - let them see the landing page
+  // if (session) {
+  //   redirect('/dashboard')
+  // }
 
   return (
     <main className="min-h-screen bg-slate-900">

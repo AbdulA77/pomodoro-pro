@@ -254,6 +254,7 @@ export default function SignUpPage() {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 onSubmit={handleSubmit}
                 className="space-y-4"
+                autoComplete="off"
               >
                 {error && (
                   <motion.div
@@ -277,6 +278,7 @@ export default function SignUpPage() {
                       placeholder="Enter your full name"
                       required
                       disabled={isLoading}
+                      autoComplete="off"
                       className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20 pl-10"
                     />
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -293,6 +295,7 @@ export default function SignUpPage() {
                       placeholder="Enter your email"
                       required
                       disabled={isLoading}
+                      autoComplete="new-email"
                       className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20 pl-10"
                     />
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -309,6 +312,7 @@ export default function SignUpPage() {
                       placeholder="Create a password"
                       required
                       disabled={isLoading}
+                      autoComplete="new-password"
                       className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20 pl-10 pr-10"
                     />
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -334,6 +338,7 @@ export default function SignUpPage() {
                       placeholder="Confirm your password"
                       required
                       disabled={isLoading}
+                      autoComplete="new-password"
                       className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20 pl-10 pr-10"
                     />
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />

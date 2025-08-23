@@ -15,12 +15,32 @@ interface Stats {
     totalFocusTime: number
     tasksCompleted: number
   }
-  streak: number
+  week: {
+    focusSessions: number
+    totalFocusTime: number
+  }
+  allTime: {
+    focusSessions: number
+    totalFocusTime: number
+    tasksCompleted: number
+    avgSessionDuration: number
+  }
+  distribution: {
+    focus: number
+    shortBreaks: number
+    longBreaks: number
+  }
+  weeklyProgress: Array<{
+    day: string
+    sessions: number
+    focusTime: number
+  }>
   recentActivity: Array<{
     type: string
     duration: number
     completedAt: string
   }>
+  streak: number
 }
 
 interface Task {
@@ -69,8 +89,24 @@ export default function DashboardPage() {
       totalFocusTime: 0,
       tasksCompleted: 0
     },
-    streak: 0,
-    recentActivity: []
+    week: {
+      focusSessions: 0,
+      totalFocusTime: 0
+    },
+    allTime: {
+      focusSessions: 0,
+      totalFocusTime: 0,
+      tasksCompleted: 0,
+      avgSessionDuration: 0
+    },
+    distribution: {
+      focus: 0,
+      shortBreaks: 0,
+      longBreaks: 0
+    },
+    weeklyProgress: [],
+    recentActivity: [],
+    streak: 0
   })
   const [todaysTasks, setTodaysTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -113,12 +149,13 @@ export default function DashboardPage() {
           // 1. Due today
           // 2. Currently in progress
           // 3. High or critical priority and not done
-          // 4. Recently created TODO tasks (last 3 days)
+          // 4. TODO tasks (not done)
           const isDueToday = task.dueAt && task.dueAt.startsWith(todayString)
           const isInProgress = task.status === 'IN_PROGRESS'
           const isHighPriority = (task.priority === 'HIGH' || task.priority === 'CRITICAL') && task.status !== 'DONE'
+          const isTodo = task.status === 'TODO' || task.status === 'IN_PROGRESS'
           
-          return isDueToday || isInProgress || isHighPriority
+          return isDueToday || isInProgress || isHighPriority || isTodo
         }).slice(0, 5) // Limit to 5 tasks
         
         setTodaysTasks(filteredTasks)
@@ -328,139 +365,8 @@ export default function DashboardPage() {
           animate="visible"
           className="grid gap-6 md:grid-cols-3 auto-rows-fr"
         >
-          {/* Quick Start */}
+          {/* Quick Actions */}
           <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
-            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex flex-col h-full">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                    className="mb-4"
-                  >
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 w-fit">
-                      <Target className="h-8 w-8 text-white" />
-                    </div>
-                  </motion.div>
-                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-blue-300 transition-colors">
-                    Quick Start
-                  </h3>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    Start A New Pomodoro Session
-                  </p>
-                  <div className="mt-auto">
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button 
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                        onClick={() => {
-                          setIsTransitioning(true)
-                          setTimeout(() => {
-                            router.push('/focus')
-                          }, 300)
-                        }}
-                        disabled={isTransitioning}
-                      >
-                        {isTransitioning ? (
-                          <div className="flex items-center space-x-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Starting Session...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Zap className="h-4 w-4" />
-                            <span>Start Focus Session</span>
-                          </div>
-                        )}
-                      </Button>
-                    </motion.div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Today's Progress */}
-          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
-            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex flex-col h-full">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                    className="mb-4"
-                  >
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 w-fit">
-                      <BarChart3 className="h-8 w-8 text-white" />
-                    </div>
-                  </motion.div>
-                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-green-300 transition-colors">
-                    Today&apos;s Progress
-                  </h3>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    Your focus sessions today
-                  </p>
-                  <div className="space-y-4 flex-1">
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
-                      <span className="text-gray-300">Focus Sessions</span>
-                      <span className="font-bold text-white text-lg">{loading ? '...' : stats.today.focusSessions}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
-                      <span className="text-gray-300">Total Focus Time</span>
-                      <span className="font-bold text-white text-lg">{loading ? '...' : formatTime(stats.today.totalFocusTime)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
-                      <span className="text-gray-300">Tasks Completed</span>
-                      <span className="font-bold text-white text-lg">{loading ? '...' : stats.today.tasksCompleted}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Current Streak */}
-          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
-            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex flex-col h-full">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                    className="mb-4"
-                  >
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 w-fit">
-                      <Coffee className="h-8 w-8 text-white" />
-                    </div>
-                  </motion.div>
-                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-orange-300 transition-colors">
-                    Current Streak
-                  </h3>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    Days of consistent focus
-                  </p>
-                  <div className="text-center flex-1 flex items-center justify-center">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="text-5xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                        {loading ? '...' : stats.streak}
-                      </div>
-                      <div className="text-gray-300 text-sm">days</div>
-                    </motion.div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          
-
-                                                          {/* Quick Actions */}
-           <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
             <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
               <CardContent className="p-6">
                 <div className="flex flex-col h-full">
@@ -479,8 +385,6 @@ export default function DashboardPage() {
                   <p className="text-gray-300 text-sm leading-relaxed mb-6">
                     Common Tasks & Shortcuts
                   </p>
-
-
                   <div className="space-y-3 flex-1">
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <Button variant="outline" asChild className="w-full justify-start bg-white/5 border-white/20 text-white hover:bg-white/10 transition-all duration-300">
@@ -549,63 +453,83 @@ export default function DashboardPage() {
                       </div>
                     ) : todaysTasks.length > 0 ? (
                       <div className="space-y-3">
-                        {todaysTasks.map((task: Task, index: number) => (
+                        {todaysTasks.map((task, index) => (
                           <motion.div
                             key={task.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="flex items-start space-x-3 group/task p-3 rounded-lg hover:bg-white/5 transition-all duration-300"
+                            className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300"
                           >
-                            <div className={`h-3 w-3 rounded-full mt-2 ${getPriorityColor(task.priority)}`} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="text-xs font-medium text-gray-300">
-                                  {getStatusIcon(task.status)}
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`} />
+                              <span className="text-white font-medium">{task.title}</span>
+                              <span className="text-gray-400 text-sm">{getStatusIcon(task.status)}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-400 text-sm">{task.priority}</span>
+                              {task.dueAt && (
+                                <span className="text-gray-400 text-xs">
+                                  {new Date(task.dueAt).toLocaleDateString()}
                                 </span>
-                                <div className="text-sm font-medium truncate text-white" title={task.title}>
-                                  {task.title}
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2 text-xs text-gray-400">
-                                {task.project && (
-                                  <span className="inline-flex items-center">
-                                    <div 
-                                      className="w-2 h-2 rounded-full mr-1" 
-                                      style={{ backgroundColor: task.project.color }}
-                                    />
-                                    {task.project.name}
-                                  </span>
-                                )}
-                                <span>{task.completedPomodoros}/{task.estimatePomodoros} 🍅</span>
-                                {task.dueAt && (
-                                  <span className="text-orange-400">Due today</span>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </motion.div>
                         ))}
                       </div>
                     ) : (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="text-center py-8"
-                      >
-                        <div className="text-4xl mb-2">🎉</div>
-                        <div className="text-sm text-gray-300">
-                          No priority tasks for today. You&apos;re all caught up!
-                        </div>
-                      </motion.div>
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className="mb-4"
+                        >
+                          <div className="text-4xl">🎉</div>
+                        </motion.div>
+                        <p className="text-gray-400 mb-4">No priority tasks for today. You&apos;re all caught up!</p>
+                        <Button variant="outline" asChild className="bg-white/5 border-white/20 text-white hover:bg-white/10">
+                          <Link href="/tasks">
+                            View All Tasks
+                          </Link>
+                        </Button>
+                      </div>
                     )}
                   </div>
-                  <div className="mt-4 pt-3 border-t border-white/10">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Link href="/tasks">
-                        <Button variant="outline" size="sm" className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10">
-                          View All Tasks
-                        </Button>
-                      </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Current Streak */}
+          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
+            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
+              <CardContent className="p-6">
+                <div className="flex flex-col h-full">
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ duration: 0.3 }}
+                    className="mb-4"
+                  >
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 w-fit">
+                      <Coffee className="h-8 w-8 text-white" />
+                    </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-orange-300 transition-colors">
+                    Current Streak
+                  </h3>
+                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
+                    Days of consistent focus
+                  </p>
+                  <div className="text-center flex-1 flex items-center justify-center">
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="text-5xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                        {loading ? '...' : stats.streak}
+                      </div>
+                      <div className="text-gray-300 text-sm">days</div>
                     </motion.div>
                   </div>
                 </div>
@@ -613,7 +537,84 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-          
+          {/* Analytics Overview */}
+          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
+            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
+              <CardContent className="p-6">
+                <div className="flex flex-col h-full">
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ duration: 0.3 }}
+                    className="mb-4"
+                  >
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 w-fit">
+                      <BarChart3 className="h-8 w-8 text-white" />
+                    </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-blue-300 transition-colors">
+                    Analytics Overview
+                  </h3>
+                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
+                    Your productivity insights
+                  </p>
+                  <div className="space-y-4 flex-1">
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                      <span className="text-gray-300">Total Sessions</span>
+                      <span className="font-bold text-white text-lg">{loading ? '...' : stats.allTime.focusSessions}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                      <span className="text-gray-300">Avg Session</span>
+                      <span className="font-bold text-white text-lg">{loading ? '...' : formatTime(Math.floor(stats.allTime.avgSessionDuration / 60))}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                      <span className="text-gray-300">Tasks Done</span>
+                      <span className="font-bold text-white text-lg">{loading ? '...' : stats.allTime.tasksCompleted}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Today's Progress */}
+          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
+            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
+              <CardContent className="p-6">
+                <div className="flex flex-col h-full">
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ duration: 0.3 }}
+                    className="mb-4"
+                  >
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 w-fit">
+                      <Target className="h-8 w-8 text-white" />
+                    </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-green-300 transition-colors">
+                    Today&apos;s Progress
+                  </h3>
+                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
+                    Your focus sessions today
+                  </p>
+                  <div className="space-y-4 flex-1">
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                      <span className="text-gray-300">Focus Sessions</span>
+                      <span className="font-bold text-white text-lg">{loading ? '...' : stats.today.focusSessions}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                      <span className="text-gray-300">Total Focus Time</span>
+                      <span className="font-bold text-white text-lg">{loading ? '...' : formatTime(Math.floor(stats.today.totalFocusTime / 60))}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                      <span className="text-gray-300">Tasks Completed</span>
+                      <span className="font-bold text-white text-lg">{loading ? '...' : stats.today.tasksCompleted}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
         </motion.div>
       </div>
     </div>

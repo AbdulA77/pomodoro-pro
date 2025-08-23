@@ -237,6 +237,7 @@ export default function SignInPage() {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 onSubmit={handleSubmit}
                 className="space-y-4"
+                autoComplete="off"
               >
                 {error && (
                   <motion.div
@@ -259,6 +260,7 @@ export default function SignInPage() {
                     placeholder="Enter your email"
                     required
                     disabled={isLoading}
+                    autoComplete="off"
                     className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
                   />
                 </div>
@@ -273,6 +275,7 @@ export default function SignInPage() {
                       placeholder="Enter your password"
                       required
                       disabled={isLoading}
+                      autoComplete="off"
                       className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20 pr-10"
                     />
                     <Button

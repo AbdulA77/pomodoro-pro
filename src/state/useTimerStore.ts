@@ -17,9 +17,6 @@ interface TimerState {
   // Current task
   currentTaskId: string | null
   
-  // Worker reference
-  worker: Worker | null
-  
   // Session tracking
   sessionStartTime: Date | null
   sessionInterruptions: number
@@ -27,6 +24,9 @@ interface TimerState {
   // Recovery state
   lastActiveTime: number | null
   recoveryAttempted: boolean
+  
+  // Fallback timer
+  fallbackTimerId: number | null
   
   // Actions
   initialize: (config: TimeConfig) => void
@@ -38,6 +38,7 @@ interface TimerState {
   setCurrentTask: (taskId: string | null) => void
   updateConfig: (config: Partial<TimeConfig>) => void
   cleanup: () => void
+  syncTimer: () => void
   saveSession: () => Promise<void>
   recoverState: () => void
   validatePersistedState: () => boolean
@@ -64,38 +65,106 @@ export const useTimerStore = create<TimerState>()(
       totalIntervals: 0,
       config: defaultConfig,
       currentTaskId: null,
-      worker: null,
       sessionStartTime: null,
       sessionInterruptions: 0,
       lastActiveTime: null,
       recoveryAttempted: false,
+      fallbackTimerId: null,
       
       // Initialize timer with config
       initialize: (config: TimeConfig) => {
         const { cleanup } = get()
         cleanup()
         
-        try {
-          // Create Web Worker
-          const worker = new Worker(
-            new URL('../workers/timer-worker.ts', import.meta.url),
-            { type: 'module' }
-          )
+        console.log('Initializing timer with config:', config)
         
-        // Handle worker messages
-        worker.onmessage = (event) => {
-          const { remaining, isComplete } = event.data
+        // Update config and preserve current state
+        set({
+          config,
+          // Don't reset phase or remaining time - preserve current state
+        })
+        
+        console.log('Timer initialized successfully with fallback system')
+      },
+      
+      // Start timer
+      start: () => {
+        const { remainingMs, isPaused, config, phase, sessionStartTime, fallbackTimerId } = get()
+        
+        console.log('Starting timer:', { remainingMs, isPaused, phase })
+        
+        // Clear any existing fallback timer
+        if (fallbackTimerId) {
+          clearInterval(fallbackTimerId)
+        }
+        
+        // Use fallback timer (more reliable)
+        console.log('Using reliable fallback timer')
+        const timerId = setInterval(() => {
+          const { remainingMs: currentRemaining, isRunning } = get()
+          console.log('Timer tick:', { currentRemaining, isRunning })
           
-          set({ remainingMs: remaining })
-          
-          if (isComplete) {
+          if (isRunning && currentRemaining > 0) {
+            const newRemaining = Math.max(0, currentRemaining - 1000)
+            set({ remainingMs: newRemaining })
+            console.log('Updated remaining time:', newRemaining)
+            
+            if (newRemaining <= 0) {
+              clearInterval(timerId)
+              
+              // Handle timer completion
+              const { phase, currentInterval, config, sessionStartTime, sessionInterruptions, currentTaskId } = get()
+              
+              // Save the completed session (don't await to prevent blocking timer)
+              if (sessionStartTime) {
+                get().saveSession().catch(error => {
+                  console.error('Session save failed, but timer continues:', error)
+                })
+              }
+              
+              // Transition to next phase
+              const { phase: nextPhase, interval: nextInterval } = getNextPhase(
+                phase,
+                currentInterval,
+                config
+              )
+              
+              set({
+                phase: nextPhase,
+                currentInterval: nextInterval,
+                remainingMs: getPhaseDuration(nextPhase, config),
+                isRunning: false,
+                isPaused: false,
+                sessionStartTime: null,
+                sessionInterruptions: 0,
+                fallbackTimerId: null
+              })
+              
+              console.log('Timer completed! Transitioning to:', nextPhase)
+              
+              // Auto-start next phase if configured
+              if (
+                (nextPhase === 'SHORT_BREAK' && config.autoStartBreaks) ||
+                (nextPhase === 'LONG_BREAK' && config.autoStartBreaks) ||
+                (nextPhase === 'FOCUS' && config.autoStartPomodoros)
+              ) {
+                setTimeout(() => get().start(), 1000)
+              }
+            }
+          } else if (currentRemaining <= 0) {
+            clearInterval(timerId)
+            
+            // Handle timer completion (same logic as above)
             const { phase, currentInterval, config, sessionStartTime, sessionInterruptions, currentTaskId } = get()
             
-            // Save the completed session
+            // Save the completed session (don't await to prevent blocking timer)
             if (sessionStartTime) {
-              get().saveSession()
+              get().saveSession().catch(error => {
+                console.error('Session save failed, but timer continues:', error)
+              })
             }
             
+            // Transition to next phase
             const { phase: nextPhase, interval: nextInterval } = getNextPhase(
               phase,
               currentInterval,
@@ -110,7 +179,10 @@ export const useTimerStore = create<TimerState>()(
               isPaused: false,
               sessionStartTime: null,
               sessionInterruptions: 0,
+              fallbackTimerId: null
             })
+            
+            console.log('Timer completed! Transitioning to:', nextPhase)
             
             // Auto-start next phase if configured
             if (
@@ -121,135 +193,140 @@ export const useTimerStore = create<TimerState>()(
               setTimeout(() => get().start(), 1000)
             }
           }
-        }
-        
-        set({
-          worker,
-          config,
-          remainingMs: getPhaseDuration('FOCUS', config),
-        })
-      } catch (error) {
-        console.error('Failed to create timer worker:', error)
-        // Fallback: continue without worker, timer won't work but app won't crash
-        set({
-          worker: null,
-          config,
-          remainingMs: getPhaseDuration('FOCUS', config),
-        })
-      }
-      },
-      
-      // Start timer
-      start: () => {
-        const { worker, remainingMs, isPaused, config, phase, sessionStartTime } = get()
-        
-        if (!worker) return
-        
-        if (isPaused) {
-          // Resume from pause
-          worker.postMessage({
-            type: 'START',
-            duration: getPhaseDuration(phase, config),
-            remaining: remainingMs,
-          })
-        } else {
-          // Start fresh
-          worker.postMessage({
-            type: 'START',
-            duration: getPhaseDuration(phase, config),
-          })
-          // Track session start time for new sessions (only if not already tracking)
-          if (!sessionStartTime) {
-            set({ sessionStartTime: new Date(), sessionInterruptions: 0 })
-          }
-        }
+        }, 1000)
         
         set({ 
           isRunning: true, 
           isPaused: false,
-          lastActiveTime: Date.now()
+          lastActiveTime: Date.now(),
+          fallbackTimerId: timerId
         })
+        
+        // Track session start time for new sessions
+        if (!sessionStartTime) {
+          set({ sessionStartTime: new Date(), sessionInterruptions: 0 })
+        } else {
+          // Reset interruptions for continuing sessions
+          set({ sessionInterruptions: 0 })
+        }
+        
+        console.log('Timer started successfully with fallback system')
       },
       
       // Pause timer
       pause: () => {
-        const { worker, sessionInterruptions } = get()
+        const { sessionInterruptions, fallbackTimerId } = get()
         
-        if (!worker) return
+        console.log('Pausing timer:', { fallbackTimerId: !!fallbackTimerId })
         
-        worker.postMessage({ type: 'PAUSE' })
-        set({ 
-          isRunning: false, 
-          isPaused: true,
-          sessionInterruptions: sessionInterruptions + 1,
-          lastActiveTime: Date.now()
-        })
+        if (!fallbackTimerId) {
+          console.error('Timer not initialized')
+          return
+        }
+        
+        try {
+          if (fallbackTimerId) {
+            clearInterval(fallbackTimerId)
+            set({ fallbackTimerId: null })
+          }
+          
+          set({ 
+            isRunning: false, 
+            isPaused: true,
+            sessionInterruptions: sessionInterruptions + 1,
+            lastActiveTime: Date.now()
+          })
+          
+          console.log('Timer paused successfully')
+        } catch (error) {
+          console.error('Error pausing timer:', error)
+        }
       },
       
       // Reset timer
       reset: () => {
-        const { worker, config, phase } = get()
+        const { config, phase, fallbackTimerId } = get()
         
-        if (!worker) return
+        // Clear fallback timer if it exists
+        if (fallbackTimerId) {
+          clearInterval(fallbackTimerId)
+        }
         
-        worker.postMessage({
-          type: 'RESET',
-          duration: getPhaseDuration(phase, config),
-        })
-        
-        set({
-          remainingMs: getPhaseDuration(phase, config),
-          isRunning: false,
-          isPaused: false,
-          sessionStartTime: null,
-          sessionInterruptions: 0,
-        })
+        try {
+          set({
+            remainingMs: getPhaseDuration(phase, config),
+            isRunning: false,
+            isPaused: false,
+            // Don't clear sessionStartTime - this affects dashboard/analytics
+            // Only clear interruptions for current session
+            sessionInterruptions: 0,
+            lastActiveTime: null,
+            fallbackTimerId: null,
+          })
+          
+          console.log('Timer reset successfully')
+        } catch (error) {
+          console.error('Error resetting timer:', error)
+        }
       },
       
       // Skip to next phase
       skip: () => {
-        const { worker, phase, currentInterval, config } = get()
+        const { phase, currentInterval, config, fallbackTimerId } = get()
         
-        if (!worker) return
+        // Clear any existing fallback timer
+        if (fallbackTimerId) {
+          clearInterval(fallbackTimerId)
+        }
         
-        worker.postMessage({ type: 'SKIP' })
-        
-        const { phase: nextPhase, interval: nextInterval } = getNextPhase(
-          phase,
-          currentInterval,
-          config
-        )
-        
-        set({
-          phase: nextPhase,
-          currentInterval: nextInterval,
-          remainingMs: getPhaseDuration(nextPhase, config),
-          isRunning: false,
-          isPaused: false,
-          sessionStartTime: null,
-          sessionInterruptions: 0,
-        })
+        try {
+          const { phase: nextPhase, interval: nextInterval } = getNextPhase(
+            phase,
+            currentInterval,
+            config
+          )
+          
+          set({
+            phase: nextPhase,
+            currentInterval: nextInterval,
+            remainingMs: getPhaseDuration(nextPhase, config),
+            isRunning: false,
+            isPaused: false,
+            sessionStartTime: null,
+            sessionInterruptions: 0,
+            fallbackTimerId: null,
+          })
+          
+          console.log('Skipped to next phase:', nextPhase)
+        } catch (error) {
+          console.error('Error skipping timer:', error)
+        }
       },
       
       // Set specific phase
       setPhase: (phase: Phase) => {
-        const { worker, config } = get()
+        const { config, fallbackTimerId } = get()
         
-        if (!worker) return
+        // Clear any existing fallback timer
+        if (fallbackTimerId) {
+          clearInterval(fallbackTimerId)
+        }
         
-        worker.postMessage({
-          type: 'SET_DURATION',
-          duration: getPhaseDuration(phase, config),
-        })
-        
-        set({
-          phase,
-          remainingMs: getPhaseDuration(phase, config),
-          isRunning: false,
-          isPaused: false,
-          sessionStartTime: null, // Reset session tracking when manually changing phases
-          sessionInterruptions: 0,
-        })
+        try {
+          set({
+            phase,
+            remainingMs: getPhaseDuration(phase, config),
+            isRunning: false,
+            isPaused: false,
+            sessionStartTime: null, // Reset session tracking when manually changing phases
+            sessionInterruptions: 0,
+            fallbackTimerId: null,
+          })
+          
+          console.log('Phase set to:', phase, 'Duration:', getPhaseDuration(phase, config))
+        } catch (error) {
+          console.error('Error setting phase:', error)
+        }
       },
       
       // Set current task
@@ -259,37 +336,62 @@ export const useTimerStore = create<TimerState>()(
       
       // Update configuration
       updateConfig: (newConfig: Partial<TimeConfig>) => {
-        const { config, phase, worker } = get()
+        const { config, phase, remainingMs, fallbackTimerId } = get()
         const updatedConfig = { ...config, ...newConfig }
         
-        if (worker) {
-          worker.postMessage({
-            type: 'SET_DURATION',
-            duration: getPhaseDuration(phase, updatedConfig),
-          })
+        // Clear any existing fallback timer
+        if (fallbackTimerId) {
+          clearInterval(fallbackTimerId)
+        }
+        
+        // Only update remaining time if the current phase's duration is being changed
+        let newRemainingMs = remainingMs
+        
+        if (
+          (phase === 'FOCUS' && 'pomodoroMinutes' in newConfig) ||
+          (phase === 'SHORT_BREAK' && 'shortBreakMinutes' in newConfig) ||
+          (phase === 'LONG_BREAK' && 'longBreakMinutes' in newConfig)
+        ) {
+          newRemainingMs = getPhaseDuration(phase, updatedConfig)
         }
         
         set({
           config: updatedConfig,
-          remainingMs: getPhaseDuration(phase, updatedConfig),
+          remainingMs: newRemainingMs,
           // Reset session tracking when config changes to prevent inconsistent state
           sessionStartTime: null,
           sessionInterruptions: 0,
           isRunning: false,
           isPaused: false,
+          fallbackTimerId: null,
         })
+        
+        console.log('Config updated:', updatedConfig)
       },
       
       // Save session to database
       saveSession: async () => {
         const { phase, sessionStartTime, sessionInterruptions, currentTaskId, config } = get()
         
-        if (!sessionStartTime) return
+        if (!sessionStartTime) {
+          console.log('No session start time, skipping session save')
+          return
+        }
         
         // Handle both Date objects and date strings (from persistence)
         const startTime = sessionStartTime instanceof Date ? sessionStartTime : new Date(sessionStartTime)
         const sessionEndTime = new Date()
         const durationSec = Math.floor((sessionEndTime.getTime() - startTime.getTime()) / 1000)
+        
+        // Validate duration before saving
+        if (durationSec <= 0 || durationSec > 24 * 60 * 60) { // Max 24 hours
+          console.log('Invalid session duration, skipping save:', durationSec)
+          return
+        }
+        
+        // Add timeout to prevent hanging
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
         
         try {
           console.log('Saving session:', {
@@ -309,38 +411,60 @@ export const useTimerStore = create<TimerState>()(
             },
             body: JSON.stringify({
               phase,
-              taskId: currentTaskId,
+              taskId: currentTaskId || null,
               startedAt: startTime.toISOString(),
               endedAt: sessionEndTime.toISOString(),
               durationSec,
               completed: true,
               interruptions: sessionInterruptions,
             }),
+            signal: controller.signal,
           })
+          
+          clearTimeout(timeoutId)
           
           if (response.ok) {
             console.log('Session saved successfully')
           } else if (response.status === 401) {
             console.log('User not authenticated, skipping session save')
           } else {
-            console.error('Failed to save session:', response.status)
+            const errorData = await response.text()
+            console.error('Failed to save session:', response.status, errorData)
           }
-                 } catch (error) {
-           console.error('Error saving session:', error)
-           
-           // Log more details about the error
-           if (error instanceof Error) {
-             console.error('Session save error message:', error.message)
-             console.error('Session save error stack:', error.stack)
-           }
-           
-           // Don't throw error to prevent timer from breaking
-         }
+        } catch (error) {
+          clearTimeout(timeoutId)
+          console.error('Error saving session:', error)
+          
+          // Log more details about the error
+          if (error instanceof Error) {
+            console.error('Session save error message:', error.message)
+            console.error('Session save error stack:', error.stack)
+          }
+          
+          // Don't throw error to prevent timer from breaking
+          // Just log and continue
+        }
       },
       
       // Validate persisted state
       validatePersistedState: () => {
-        const { sessionStartTime, lastActiveTime, isRunning, remainingMs } = get()
+        const { sessionStartTime, lastActiveTime, isRunning, remainingMs, phase, config } = get()
+        
+        // Check if remaining time is reasonable for the current phase
+        const maxTimeForPhase = (() => {
+          switch (phase) {
+            case 'FOCUS': return minutesToMs(config.pomodoroMinutes)
+            case 'SHORT_BREAK': return minutesToMs(config.shortBreakMinutes)
+            case 'LONG_BREAK': return minutesToMs(config.longBreakMinutes)
+            default: return minutesToMs(config.pomodoroMinutes)
+          }
+        })()
+        
+        // Validate remaining time is within reasonable bounds
+        if (remainingMs < 0 || remainingMs > maxTimeForPhase * 1.1 || remainingMs > 60 * 60 * 1000) { // Allow 10% buffer, max 1 hour
+          console.log('Invalid remaining time for phase:', { remainingMs, phase, maxTimeForPhase })
+          return false
+        }
         
         // If timer was running, check if session is still valid (within 24 hours)
         if (isRunning && sessionStartTime && lastActiveTime) {
@@ -352,12 +476,6 @@ export const useTimerStore = create<TimerState>()(
             console.log('Session expired, resetting timer state')
             return false
           }
-          
-          // Check if remaining time is reasonable
-          if (remainingMs < 0 || remainingMs > 60 * 60 * 1000) { // More than 1 hour
-            console.log('Invalid remaining time, resetting timer state')
-            return false
-          }
         }
         
         return true
@@ -365,13 +483,15 @@ export const useTimerStore = create<TimerState>()(
       
       // Recover timer state after page refresh
       recoverState: () => {
-        const { isRunning, isPaused, sessionStartTime, validatePersistedState, worker, recoveryAttempted } = get()
+        const { isRunning, isPaused, sessionStartTime, validatePersistedState, recoveryAttempted, remainingMs, phase } = get()
         
         if (recoveryAttempted) return // Prevent multiple recovery attempts
         
         set({ recoveryAttempted: true })
         
+        // Always validate the persisted state
         if (!validatePersistedState()) {
+          console.log('Invalid persisted state, resetting timer')
           // Reset to safe state if validation fails
           set({
             isRunning: false,
@@ -379,35 +499,44 @@ export const useTimerStore = create<TimerState>()(
             sessionStartTime: null,
             sessionInterruptions: 0,
             lastActiveTime: null,
+            remainingMs: minutesToMs(get().config.pomodoroMinutes), // Reset to default focus time
+            phase: 'FOCUS',
           })
           return
         }
         
         // If timer was running, try to recover
-        if (isRunning && worker && sessionStartTime) {
-          console.log('Recovering timer state...')
+        if (isRunning && sessionStartTime) {
+          console.log('Recovering timer state...', { remainingMs, phase, isPaused })
           
           // Update last active time
           set({ lastActiveTime: Date.now() })
           
-          // Resume timer if it was running
+          // Resume timer if it was running and not paused
           if (!isPaused) {
             setTimeout(() => {
               get().start()
             }, 100)
           }
+        } else {
+          console.log('Timer state recovered but not running', { remainingMs, phase, isRunning, isPaused })
         }
       },
       
-      // Cleanup worker
+      // Sync timer state (no longer needed with fallback system)
+      syncTimer: () => {
+        console.log('Sync timer called - not needed with fallback system')
+      },
+      
+      // Cleanup timer
       cleanup: () => {
-        const { worker } = get()
+        const { fallbackTimerId } = get()
         
-        if (worker) {
-          worker.terminate()
+        if (fallbackTimerId) {
+          clearInterval(fallbackTimerId)
         }
         
-        set({ worker: null })
+        set({ fallbackTimerId: null })
       },
     }),
     {
@@ -421,6 +550,10 @@ export const useTimerStore = create<TimerState>()(
         sessionInterruptions: state.sessionInterruptions,
         lastActiveTime: state.lastActiveTime,
         recoveryAttempted: state.recoveryAttempted,
+        phase: state.phase,
+        remainingMs: state.remainingMs,
+        isRunning: state.isRunning,
+        isPaused: state.isPaused,
       }),
     }
   )

@@ -2,9 +2,10 @@
 // Uses performance.now() for accurate timing and postMessage for communication
 
 interface TimerMessage {
-  type: 'START' | 'PAUSE' | 'RESET' | 'SKIP' | 'SET_DURATION'
+  type: 'START' | 'PAUSE' | 'RESET' | 'SKIP' | 'SET_DURATION' | 'SYNC'
   duration?: number
   remaining?: number
+  timestamp?: number
 }
 
 interface TimerTick {
@@ -101,9 +102,25 @@ const skipTimer = () => {
 
 // Handle messages from main thread
 self.addEventListener('message', (event: MessageEvent<TimerMessage>) => {
-  const { type, duration: msgDuration, remaining: msgRemaining } = event.data
+  const { type, duration: msgDuration, remaining: msgRemaining, timestamp } = event.data
+  
+  // Validate all incoming messages to prevent corruption
+  if (msgDuration && (msgDuration <= 0 || msgDuration > 60 * 60 * 1000)) {
+    console.log('Invalid duration received:', msgDuration)
+    return
+  }
+  
+  if (msgRemaining !== undefined && (msgRemaining < 0 || msgRemaining > 60 * 60 * 1000)) {
+    console.log('Invalid remaining time received:', msgRemaining)
+    return
+  }
   
   switch (type) {
+    case 'TEST':
+      console.log('Worker received TEST message')
+      self.postMessage({ type: 'TEST_RESPONSE', status: 'ok' })
+      break
+      
     case 'START':
       if (msgDuration) {
         if (isRunning) {
@@ -131,6 +148,48 @@ self.addEventListener('message', (event: MessageEvent<TimerMessage>) => {
     case 'SET_DURATION':
       if (msgDuration) {
         resetTimer(msgDuration)
+      }
+      break
+      
+    case 'SYNC':
+      // Synchronize timer state with main thread
+      if (msgDuration && msgRemaining !== undefined && timestamp) {
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+        const timeDiff = now - timestamp
+        
+        // Validate inputs to prevent corruption
+        if (msgDuration <= 0 || msgRemaining < 0 || timeDiff < 0) {
+          console.log('Invalid SYNC parameters, resetting timer')
+          resetTimer(msgDuration || 25 * 60 * 1000) // Default to 25 minutes
+          return
+        }
+        
+        // Limit timeDiff to prevent extreme values (max 1 hour)
+        const maxTimeDiff = 60 * 60 * 1000 // 1 hour
+        const clampedTimeDiff = Math.min(timeDiff, maxTimeDiff)
+        
+        // Adjust remaining time based on time passed
+        const adjustedRemaining = Math.max(0, Math.min(msgRemaining - clampedTimeDiff, msgDuration))
+        
+        if (isRunning) {
+          // Update timer with corrected values
+          duration = msgDuration
+          remaining = adjustedRemaining
+          startTime = now - (duration - remaining)
+        } else {
+          // Just update the values without starting
+          duration = msgDuration
+          remaining = adjustedRemaining
+        }
+        
+        // Send current state back
+        const tick: TimerTick = {
+          type: 'TICK',
+          remaining: Math.round(remaining),
+          elapsed: Math.round(duration - remaining),
+          isComplete: remaining <= 0
+        }
+        self.postMessage(tick)
       }
       break
   }

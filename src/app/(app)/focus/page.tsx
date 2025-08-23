@@ -11,6 +11,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Target, Coffee, Clock, CheckSquare, Zap, Play, Pause, RotateCcw, SkipForward, Keyboard, Sparkles, RotateCcw as ResetIcon, Plus } from 'lucide-react'
 import { TaskSelector } from '@/components/tasks/TaskSelector'
 import { NotificationStatus } from '@/components/ui/notification-status'
@@ -38,6 +39,8 @@ export default function FocusPage() {
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [isRecovering, setIsRecovering] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
+  const [timerError, setTimerError] = useState('')
   
   const {
     phase,
@@ -47,6 +50,7 @@ export default function FocusPage() {
     currentInterval,
     config,
     currentTaskId,
+    worker,
     initialize,
     start,
     pause,
@@ -110,24 +114,41 @@ export default function FocusPage() {
 
   // Initialize timer on mount
   useEffect(() => {
-    initialize(config)
-    fetchTotalSessions()
-    
-    // Check if user needs onboarding
-    const hasSeenOnboarding = localStorage.getItem('onboarding-completed')
-    if (!hasSeenOnboarding) {
-      setShowOnboarding(true)
+    const initializeTimer = async () => {
+      try {
+        setIsInitializing(true)
+        setTimerError('')
+        
+        // Always initialize timer (we're using fallback system)
+        console.log('Initializing timer...')
+        initialize(config)
+        
+        await fetchTotalSessions()
+        
+        // Check if user needs onboarding
+        const hasSeenOnboarding = localStorage.getItem('onboarding-completed')
+        if (!hasSeenOnboarding) {
+          setShowOnboarding(true)
+        }
+        
+        // Attempt to recover timer state after a short delay
+        const recoveryTimeout = setTimeout(() => {
+          setIsRecovering(true)
+          recoverState()
+          // Clear recovery indicator after a short delay
+          setTimeout(() => setIsRecovering(false), 2000)
+        }, 500)
+        
+        return () => clearTimeout(recoveryTimeout)
+      } catch (error) {
+        console.error('Timer initialization error:', error)
+        setTimerError('Failed to initialize timer. Please refresh the page.')
+      } finally {
+        setIsInitializing(false)
+      }
     }
     
-    // Attempt to recover timer state after a short delay
-    const recoveryTimeout = setTimeout(() => {
-      setIsRecovering(true)
-      recoverState()
-      // Clear recovery indicator after a short delay
-      setTimeout(() => setIsRecovering(false), 2000)
-    }, 500)
-    
-    return () => clearTimeout(recoveryTimeout)
+    initializeTimer()
   }, [initialize, config, fetchTotalSessions, recoverState])
 
   const handleOnboardingComplete = () => {
@@ -151,6 +172,35 @@ export default function FocusPage() {
       }, 1000) // Small delay to ensure session is saved
     }
   }, [remainingMs, isRunning, phase, playBell, sendTimerCompleteNotification, fetchTotalSessions])
+
+  // Handle page visibility changes for timer state
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // When page becomes visible, sync timer state
+        setTimeout(() => {
+          const { syncTimer, isRunning } = useTimerStore.getState()
+          if (isRunning) {
+            syncTimer()
+          }
+          recoverState()
+        }, 100)
+      } else {
+        // When page becomes hidden, update last active time and sync
+        const { isRunning, sessionStartTime, syncTimer } = useTimerStore.getState()
+        if (isRunning && sessionStartTime) {
+          useTimerStore.setState({ lastActiveTime: Date.now() })
+          syncTimer()
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [recoverState])
 
   // Keyboard shortcuts
   useHotkeys([
@@ -289,6 +339,35 @@ export default function FocusPage() {
 
              <div className="relative z-10 container mx-auto px-2 sm:px-4 py-1 sm:py-2 lg:py-4">
          {/* Header */}
+
+         {/* Error Display */}
+         {timerError && (
+           <motion.div
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             className="w-full max-w-md mx-auto mb-4"
+           >
+             <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-300">
+               <AlertDescription>{timerError}</AlertDescription>
+             </Alert>
+           </motion.div>
+         )}
+
+         {/* Loading State */}
+         {isInitializing && (
+           <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             className="w-full max-w-md mx-auto mb-4 text-center"
+           >
+             <div className="flex items-center justify-center space-x-2 text-white">
+               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+               <span>Initializing timer...</span>
+             </div>
+           </motion.div>
+         )}
+
+
 
          <motion.div
            variants={containerVariants}

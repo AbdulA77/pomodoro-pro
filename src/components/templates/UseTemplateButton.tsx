@@ -95,10 +95,12 @@ export function UseTemplateButton({ template, onTaskCreated, projects = [] }: Us
           Use Template
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] bg-slate-900/95 backdrop-blur-sm border-white/10 shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Create Task from Template</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+            Create Task from Template
+          </DialogTitle>
+          <DialogDescription className="text-gray-300">
             Customize the task details below. The template values have been pre-filled for you.
           </DialogDescription>
         </DialogHeader>

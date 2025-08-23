@@ -98,12 +98,12 @@ export function TaskTemplateForm({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] bg-slate-900/95 backdrop-blur-sm border-white/10 shadow-2xl">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
             {mode === 'edit' ? 'Edit Task Template' : 'Create Task Template'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-300">
             {mode === 'edit' 
               ? 'Update your task template details below.' 
               : 'Create a reusable template for common tasks.'

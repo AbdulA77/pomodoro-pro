@@ -194,17 +194,70 @@ export default function SettingsPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Load settings from timer store
+  // Load settings from timer store and localStorage
   useEffect(() => {
-    setSettings(prev => ({
-      ...prev,
-      pomodoroMinutes: config.pomodoroMinutes,
-      shortBreakMinutes: config.shortBreakMinutes,
-      longBreakMinutes: config.longBreakMinutes,
-      intervalsPerLong: config.intervalsPerLong,
-      autoStartBreaks: config.autoStartBreaks,
-      autoStartPomodoros: config.autoStartPomodoros,
-    }))
+    const loadSettings = async () => {
+      try {
+        // First try to load from API
+        const response = await fetch('/api/settings')
+        if (response.ok) {
+          const apiSettings = await response.json()
+          setSettings(prev => ({
+            ...prev,
+            ...apiSettings,
+            // Always use current timer store values for timer settings
+            pomodoroMinutes: config.pomodoroMinutes,
+            shortBreakMinutes: config.shortBreakMinutes,
+            longBreakMinutes: config.longBreakMinutes,
+            intervalsPerLong: config.intervalsPerLong,
+            autoStartBreaks: config.autoStartBreaks,
+            autoStartPomodoros: config.autoStartPomodoros,
+          }))
+        } else {
+          // Fallback to localStorage
+          const savedSettings = localStorage.getItem('flowdoro-settings')
+          if (savedSettings) {
+            const parsedSettings = JSON.parse(savedSettings)
+            setSettings(prev => ({
+              ...prev,
+              ...parsedSettings,
+              // Always use current timer store values for timer settings
+              pomodoroMinutes: config.pomodoroMinutes,
+              shortBreakMinutes: config.shortBreakMinutes,
+              longBreakMinutes: config.longBreakMinutes,
+              intervalsPerLong: config.intervalsPerLong,
+              autoStartBreaks: config.autoStartBreaks,
+              autoStartPomodoros: config.autoStartPomodoros,
+            }))
+          } else {
+            // Fallback to timer store values
+            setSettings(prev => ({
+              ...prev,
+              pomodoroMinutes: config.pomodoroMinutes,
+              shortBreakMinutes: config.shortBreakMinutes,
+              longBreakMinutes: config.longBreakMinutes,
+              intervalsPerLong: config.intervalsPerLong,
+              autoStartBreaks: config.autoStartBreaks,
+              autoStartPomodoros: config.autoStartPomodoros,
+            }))
+          }
+        }
+      } catch (error) {
+        console.warn('Could not load settings:', error)
+        // Fallback to timer store values
+        setSettings(prev => ({
+          ...prev,
+          pomodoroMinutes: config.pomodoroMinutes,
+          shortBreakMinutes: config.shortBreakMinutes,
+          longBreakMinutes: config.longBreakMinutes,
+          intervalsPerLong: config.intervalsPerLong,
+          autoStartBreaks: config.autoStartBreaks,
+          autoStartPomodoros: config.autoStartPomodoros,
+        }))
+      }
+    }
+    
+    loadSettings()
   }, [config])
 
   const handleSettingChange = useCallback((key: keyof SettingsData, value: any) => {
@@ -219,8 +272,8 @@ export default function SettingsPage() {
       return
     }
     
-    if (key === 'shortBreakMinutes' && (value < 1 || value > 30)) {
-      toast.error('Short break duration must be between 1 and 30 minutes')
+    if (key === 'shortBreakMinutes' && (value < 1 || value > 60)) {
+      toast.error('Short break duration must be between 1 and 60 minutes')
       return
     }
     
@@ -254,20 +307,66 @@ export default function SettingsPage() {
         toast.info('Timer is running. Settings will be applied after the current session.')
       }
       
-      // Update timer store with new settings
+      // Update timer store with new settings (use defaults if values are 0/empty)
       updateConfig({
-        pomodoroMinutes: settings.pomodoroMinutes,
-        shortBreakMinutes: settings.shortBreakMinutes,
-        longBreakMinutes: settings.longBreakMinutes,
-        intervalsPerLong: settings.intervalsPerLong,
+        pomodoroMinutes: settings.pomodoroMinutes || 25,
+        shortBreakMinutes: settings.shortBreakMinutes || 5,
+        longBreakMinutes: settings.longBreakMinutes || 15,
+        intervalsPerLong: settings.intervalsPerLong || 4,
         autoStartBreaks: settings.autoStartBreaks,
         autoStartPomodoros: settings.autoStartPomodoros,
       })
       
-      // Simulate API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Save settings to localStorage for persistence
+      try {
+        localStorage.setItem('flowdoro-settings', JSON.stringify(settings))
+      } catch (localStorageError) {
+        console.warn('Could not save settings to localStorage:', localStorageError)
+      }
+      
+      // Save settings to API
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pomodoroMinutes: settings.pomodoroMinutes || 25,
+          shortBreakMinutes: settings.shortBreakMinutes || 5,
+          longBreakMinutes: settings.longBreakMinutes || 15,
+          intervalsPerLong: settings.intervalsPerLong || 4,
+          autoStartBreaks: settings.autoStartBreaks,
+          autoStartPomodoros: settings.autoStartPomodoros,
+          strictFocusMode: settings.strictFocusMode,
+          alarmSound: 'bell.mp3',
+          alarmVolume: settings.alarmVolume || 70,
+          theme: 'system'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save settings to server')
+      }
+
+      const savedSettings = await response.json()
+      console.log('Settings saved to server:', savedSettings)
       
       setHasUnsavedChanges(false)
+      
+      // Verify settings were applied correctly
+      const currentConfig = useTimerStore.getState().config
+      console.log('Settings applied:', {
+        saved: {
+          pomodoroMinutes: settings.pomodoroMinutes,
+          shortBreakMinutes: settings.shortBreakMinutes,
+          longBreakMinutes: settings.longBreakMinutes,
+          intervalsPerLong: settings.intervalsPerLong,
+          autoStartBreaks: settings.autoStartBreaks,
+          autoStartPomodoros: settings.autoStartPomodoros,
+        },
+        current: currentConfig
+      })
+      
       toast.success('Settings saved successfully!', {
         description: isRunning ? 'Changes will apply to the next session' : 'All changes applied immediately'
       })
@@ -519,11 +618,18 @@ export default function SettingsPage() {
                       <Input
                         id="pomodoro"
                         type="number"
-                        value={settings.pomodoroMinutes || ''}
+                        value={settings.pomodoroMinutes === 0 ? '' : settings.pomodoroMinutes}
                         onChange={(e) => {
-                          const value = e.target.value === '' ? 25 : parseInt(e.target.value)
-                          if (!isNaN(value)) {
-                            handleSettingChange('pomodoroMinutes', value)
+                          const value = e.target.value
+                          if (value === '') {
+                            // Allow empty input for better UX
+                            setSettings(prev => ({ ...prev, pomodoroMinutes: 0 }))
+                            setHasUnsavedChanges(true)
+                          } else {
+                            const numValue = parseInt(value)
+                            if (!isNaN(numValue)) {
+                              handleSettingChange('pomodoroMinutes', numValue)
+                            }
                           }
                         }}
                         min="1"
@@ -539,11 +645,18 @@ export default function SettingsPage() {
                       <Input
                         id="shortBreak"
                         type="number"
-                        value={settings.shortBreakMinutes || ''}
+                        value={settings.shortBreakMinutes === 0 ? '' : settings.shortBreakMinutes}
                         onChange={(e) => {
-                          const value = e.target.value === '' ? 5 : parseInt(e.target.value)
-                          if (!isNaN(value)) {
-                            handleSettingChange('shortBreakMinutes', value)
+                          const value = e.target.value
+                          if (value === '') {
+                            // Allow empty input for better UX
+                            setSettings(prev => ({ ...prev, shortBreakMinutes: 0 }))
+                            setHasUnsavedChanges(true)
+                          } else {
+                            const numValue = parseInt(value)
+                            if (!isNaN(numValue)) {
+                              handleSettingChange('shortBreakMinutes', numValue)
+                            }
                           }
                         }}
                         min="1"
@@ -562,11 +675,18 @@ export default function SettingsPage() {
                       <Input
                         id="longBreak"
                         type="number"
-                        value={settings.longBreakMinutes || ''}
+                        value={settings.longBreakMinutes === 0 ? '' : settings.longBreakMinutes}
                         onChange={(e) => {
-                          const value = e.target.value === '' ? 15 : parseInt(e.target.value)
-                          if (!isNaN(value)) {
-                            handleSettingChange('longBreakMinutes', value)
+                          const value = e.target.value
+                          if (value === '') {
+                            // Allow empty input for better UX
+                            setSettings(prev => ({ ...prev, longBreakMinutes: 0 }))
+                            setHasUnsavedChanges(true)
+                          } else {
+                            const numValue = parseInt(value)
+                            if (!isNaN(numValue)) {
+                              handleSettingChange('longBreakMinutes', numValue)
+                            }
                           }
                         }}
                         min="1"
@@ -582,11 +702,18 @@ export default function SettingsPage() {
                       <Input
                         id="intervals"
                         type="number"
-                        value={settings.intervalsPerLong || ''}
+                        value={settings.intervalsPerLong === 0 ? '' : settings.intervalsPerLong}
                         onChange={(e) => {
-                          const value = e.target.value === '' ? 4 : parseInt(e.target.value)
-                          if (!isNaN(value)) {
-                            handleSettingChange('intervalsPerLong', value)
+                          const value = e.target.value
+                          if (value === '') {
+                            // Allow empty input for better UX
+                            setSettings(prev => ({ ...prev, intervalsPerLong: 0 }))
+                            setHasUnsavedChanges(true)
+                          } else {
+                            const numValue = parseInt(value)
+                            if (!isNaN(numValue)) {
+                              handleSettingChange('intervalsPerLong', numValue)
+                            }
                           }
                         }}
                         min="1"

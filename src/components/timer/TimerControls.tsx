@@ -26,6 +26,7 @@ export function TimerControls({
   className,
 }: TimerControlsProps) {
   const handleStartPause = () => {
+    console.log('Timer control clicked:', { isRunning, isPaused })
     if (isRunning) {
       onPause()
     } else {
