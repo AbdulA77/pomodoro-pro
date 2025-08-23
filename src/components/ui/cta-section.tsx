@@ -115,33 +115,6 @@ export const CTASection = () => {
               </motion.div>
             ))}
           </motion.div>
-
-          {/* Trust indicators */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.4 }}
-            viewport={{ once: true }}
-            className="mt-12 pt-8 border-t border-white/10"
-          >
-            <p className="text-sm text-gray-500 mb-4">
-              Trusted by developers at
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-              {["GitHub", "Microsoft", "Google", "Meta", "Netflix", "Stripe"].map((company, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 1.6 + index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="text-gray-400 font-semibold text-lg"
-                >
-                  {company}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </div>
       </div>
     </section>

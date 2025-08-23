@@ -64,7 +64,6 @@ import {
   CloudRain,
   Wind
 } from 'lucide-react'
-import { useTheme } from '@/providers/theme-provider'
 import { useTimerStore } from '@/state/useTimerStore'
 import { useSound } from '@/hooks/useSound'
 import { toast } from 'sonner'
@@ -98,17 +97,20 @@ interface SettingsData {
   timerDisplayStyle: 'digital' | 'minimal' | 'analog'
   enableAnimations: boolean
   compactMode: boolean
-  
-  // Theme & Appearance
-  theme: 'light' | 'dark' | 'system'
-  accentColor: string
   enableParticles: boolean
+  accentColor: string
   
   // Productivity Features
-  enableStreaks: boolean
-  enableGoals: boolean
-  enableInsights: boolean
-  enableSocialFeatures: boolean
+  autoSaveTasks: boolean
+  smartReminders: boolean
+  progressTracking: boolean
+  weeklyReports: boolean
+  
+  // Data & Privacy
+  dataRetention: '30days' | '90days' | '1year' | 'forever'
+  analyticsEnabled: boolean
+  crashReporting: boolean
+  telemetryEnabled: boolean
 }
 
 const containerVariants = {
@@ -141,7 +143,6 @@ const accentColors = [
 ]
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme()
   const { config, updateConfig } = useTimerStore()
   const { playBell } = useSound({ volume: 70, enabled: true })
   
@@ -174,17 +175,20 @@ export default function SettingsPage() {
     timerDisplayStyle: 'digital',
     enableAnimations: true,
     compactMode: false,
-    
-    // Theme & Appearance
-    theme: 'system',
-    accentColor: 'blue',
     enableParticles: true,
+    accentColor: 'blue',
     
     // Productivity Features
-    enableStreaks: true,
-    enableGoals: true,
-    enableInsights: true,
-    enableSocialFeatures: false,
+    autoSaveTasks: true,
+    smartReminders: true,
+    progressTracking: true,
+    weeklyReports: true,
+    
+    // Data & Privacy
+    dataRetention: '30days',
+    analyticsEnabled: true,
+    crashReporting: true,
+    telemetryEnabled: true,
   })
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -200,9 +204,8 @@ export default function SettingsPage() {
       intervalsPerLong: config.intervalsPerLong,
       autoStartBreaks: config.autoStartBreaks,
       autoStartPomodoros: config.autoStartPomodoros,
-      theme: theme,
     }))
-  }, [config, theme])
+  }, [config])
 
   const handleSettingChange = useCallback((key: keyof SettingsData, value: any) => {
     // Handle number inputs - prevent NaN values
@@ -214,10 +217,10 @@ export default function SettingsPage() {
     setHasUnsavedChanges(true)
     
     // Auto-save theme changes
-    if (key === 'theme') {
-      setTheme(value)
-    }
-  }, [setTheme])
+    // if (key === 'theme') {
+    //   setTheme(value)
+    // }
+  }, [])
 
   const handleSaveSettings = async () => {
     setIsSaving(true)
@@ -266,13 +269,16 @@ export default function SettingsPage() {
       timerDisplayStyle: 'digital',
       enableAnimations: true,
       compactMode: false,
-      theme: 'system',
-      accentColor: 'blue',
       enableParticles: true,
-      enableStreaks: true,
-      enableGoals: true,
-      enableInsights: true,
-      enableSocialFeatures: false,
+      accentColor: 'blue',
+      autoSaveTasks: true,
+      smartReminders: true,
+      progressTracking: true,
+      weeklyReports: true,
+      dataRetention: '30days',
+      analyticsEnabled: true,
+      crashReporting: true,
+      telemetryEnabled: true,
     })
     setHasUnsavedChanges(true)
     toast.info('Settings reset to defaults')
@@ -655,118 +661,6 @@ export default function SettingsPage() {
             </Card>
           </motion.div>
 
-          {/* Appearance & Theme */}
-          <motion.div variants={cardVariants}>
-            <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500">
-                    <Palette className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-white">Appearance & Theme</CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Customize the look and feel
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <motion.div variants={settingVariants} className="space-y-3">
-                  <Label className="text-gray-300">Theme</Label>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant={settings.theme === 'light' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleSettingChange('theme', 'light')}
-                      className={settings.theme === 'light' ? 'bg-white text-black' : 'bg-white/5 border-white/20 text-white hover:bg-white/10'}
-                    >
-                      <Sun className="h-4 w-4 mr-2" />
-                      Light
-                    </Button>
-                    <Button
-                      variant={settings.theme === 'dark' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleSettingChange('theme', 'dark')}
-                      className={settings.theme === 'dark' ? 'bg-white text-black' : 'bg-white/5 border-white/20 text-white hover:bg-white/10'}
-                    >
-                      <Moon className="h-4 w-4 mr-2" />
-                      Dark
-                    </Button>
-                    <Button
-                      variant={settings.theme === 'system' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleSettingChange('theme', 'system')}
-                      className={settings.theme === 'system' ? 'bg-white text-black' : 'bg-white/5 border-white/20 text-white hover:bg-white/10'}
-                    >
-                      <Monitor className="h-4 w-4 mr-2" />
-                      System
-                    </Button>
-                  </div>
-                </motion.div>
-                
-                <motion.div variants={settingVariants} className="space-y-3">
-                  <Label className="text-gray-300">Accent Color</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {accentColors.map((color) => (
-                      <Button
-                        key={color.value}
-                        variant={settings.accentColor === color.value ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleSettingChange('accentColor', color.value)}
-                        className={`${
-                          settings.accentColor === color.value 
-                            ? `bg-gradient-to-r ${color.class} text-white` 
-                            : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                        }`}
-                      >
-                        {color.name}
-                      </Button>
-                    ))}
-                  </div>
-                </motion.div>
-                
-                <motion.div variants={settingVariants} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-gray-300">Enable Animations</Label>
-                      <p className="text-xs text-gray-400">Show smooth transitions and effects</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAnimations}
-                      onCheckedChange={(checked) => handleSettingChange('enableAnimations', checked)}
-                      className="data-[state=checked]:bg-purple-500"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-gray-300">Enable Particles</Label>
-                      <p className="text-xs text-gray-400">Show floating background particles</p>
-                    </div>
-                    <Switch
-                      checked={settings.enableParticles}
-                      onCheckedChange={(checked) => handleSettingChange('enableParticles', checked)}
-                      className="data-[state=checked]:bg-blue-500"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-gray-300">Compact Mode</Label>
-                      <p className="text-xs text-gray-400">Reduce spacing for more content</p>
-                    </div>
-                    <Switch
-                      checked={settings.compactMode}
-                      onCheckedChange={(checked) => handleSettingChange('compactMode', checked)}
-                      className="data-[state=checked]:bg-green-500"
-                    />
-                  </div>
-                </motion.div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
           {/* Advanced Settings */}
           <motion.div variants={cardVariants}>
             <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
@@ -868,50 +762,129 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <motion.div variants={settingVariants} className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label className="text-gray-300">Enable Streaks</Label>
-                    <p className="text-xs text-gray-400">Track consecutive days of focus</p>
+                    <Label className="text-gray-300">Auto-save Tasks</Label>
+                    <p className="text-xs text-gray-400">Automatically save task progress</p>
                   </div>
                   <Switch
-                    checked={settings.enableStreaks}
-                    onCheckedChange={(checked) => handleSettingChange('enableStreaks', checked)}
-                    className="data-[state=checked]:bg-orange-500"
-                  />
-                </motion.div>
-                
-                <motion.div variants={settingVariants} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-gray-300">Enable Goals</Label>
-                    <p className="text-xs text-gray-400">Set and track productivity goals</p>
-                  </div>
-                  <Switch
-                    checked={settings.enableGoals}
-                    onCheckedChange={(checked) => handleSettingChange('enableGoals', checked)}
+                    checked={settings.autoSaveTasks}
+                    onCheckedChange={(checked) => handleSettingChange('autoSaveTasks', checked)}
                     className="data-[state=checked]:bg-green-500"
                   />
                 </motion.div>
                 
                 <motion.div variants={settingVariants} className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label className="text-gray-300">Enable Insights</Label>
-                    <p className="text-xs text-gray-400">AI-powered productivity insights</p>
+                    <Label className="text-gray-300">Smart Reminders</Label>
+                    <p className="text-xs text-gray-400">Intelligent notification timing</p>
                   </div>
                   <Switch
-                    checked={settings.enableInsights}
-                    onCheckedChange={(checked) => handleSettingChange('enableInsights', checked)}
+                    checked={settings.smartReminders}
+                    onCheckedChange={(checked) => handleSettingChange('smartReminders', checked)}
+                    className="data-[state=checked]:bg-blue-500"
+                  />
+                </motion.div>
+                
+                <motion.div variants={settingVariants} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-gray-300">Progress Tracking</Label>
+                    <p className="text-xs text-gray-400">Detailed productivity analytics</p>
+                  </div>
+                  <Switch
+                    checked={settings.progressTracking}
+                    onCheckedChange={(checked) => handleSettingChange('progressTracking', checked)}
                     className="data-[state=checked]:bg-purple-500"
                   />
                 </motion.div>
                 
                 <motion.div variants={settingVariants} className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label className="text-gray-300">Social Features</Label>
-                    <p className="text-xs text-gray-400">Share progress with friends</p>
+                    <Label className="text-gray-300">Weekly Reports</Label>
+                    <p className="text-xs text-gray-400">Receive weekly productivity summaries</p>
                   </div>
                   <Switch
-                    checked={settings.enableSocialFeatures}
-                    onCheckedChange={(checked) => handleSettingChange('enableSocialFeatures', checked)}
-                    className="data-[state=checked]:bg-blue-500"
+                    checked={settings.weeklyReports}
+                    onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
+                    className="data-[state=checked]:bg-orange-500"
                   />
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Appearance & Theme */}
+          <motion.div variants={cardVariants}>
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500">
+                    <Palette className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-white">Appearance & Theme</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Customize the look and feel
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <motion.div variants={settingVariants} className="space-y-3">
+                  <Label className="text-gray-300">Accent Color</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {accentColors.map((color) => (
+                      <Button
+                        key={color.value}
+                        variant={settings.accentColor === color.value ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleSettingChange('accentColor', color.value)}
+                        className={`${
+                          settings.accentColor === color.value 
+                            ? `bg-gradient-to-r ${color.class} text-white` 
+                            : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {color.name}
+                      </Button>
+                    ))}
+                  </div>
+                </motion.div>
+                
+                <motion.div variants={settingVariants} className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-gray-300">Enable Animations</Label>
+                      <p className="text-xs text-gray-400">Show smooth transitions and effects</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableAnimations}
+                      onCheckedChange={(checked) => handleSettingChange('enableAnimations', checked)}
+                      className="data-[state=checked]:bg-purple-500"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-gray-300">Enable Particles</Label>
+                      <p className="text-xs text-gray-400">Show floating background particles</p>
+                    </div>
+                    <Switch
+                      checked={settings.enableParticles}
+                      onCheckedChange={(checked) => handleSettingChange('enableParticles', checked)}
+                      className="data-[state=checked]:bg-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-gray-300">Compact Mode</Label>
+                      <p className="text-xs text-gray-400">Reduce spacing for more content</p>
+                    </div>
+                    <Switch
+                      checked={settings.compactMode}
+                      onCheckedChange={(checked) => handleSettingChange('compactMode', checked)}
+                      className="data-[state=checked]:bg-green-500"
+                    />
+                  </div>
                 </motion.div>
               </CardContent>
             </Card>

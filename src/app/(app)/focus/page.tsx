@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { TimerDisplay } from '@/components/timer/TimerDisplay'
 import { TimerControls } from '@/components/timer/TimerControls'
 import { useTimerStore } from '@/state/useTimerStore'
@@ -10,11 +11,25 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Target, Coffee, Clock, CheckSquare, Zap, Play, Pause, RotateCcw, SkipForward, Keyboard, Sparkles } from 'lucide-react'
+import { Target, Coffee, Clock, CheckSquare, Zap, Play, Pause, RotateCcw, SkipForward, Keyboard, Sparkles, RotateCcw as ResetIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 export default function FocusPage() {
+  const router = useRouter()
+  const [totalSessions, setTotalSessions] = useState(0)
+  const [isResetting, setIsResetting] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
+  
   const {
     phase,
     remainingMs,
@@ -38,10 +53,52 @@ export default function FocusPage() {
 
   const { sendTimerCompleteNotification } = useNotifications()
 
+  // Fetch total sessions count
+  const fetchTotalSessions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setTotalSessions(data.allTime?.focusSessions || 0)
+      } else if (response.status === 401) {
+        // User not authenticated, set to 0
+        setTotalSessions(0)
+      }
+    } catch (error) {
+      console.error('Error fetching total sessions:', error)
+      // Set to 0 on error to avoid showing undefined
+      setTotalSessions(0)
+    }
+  }, [])
+
+  // Reset sessions functionality
+  const handleResetSessions = async () => {
+    setIsResetting(true)
+    try {
+      const response = await fetch('/api/stats/reset', {
+        method: 'POST',
+      })
+      
+      if (response.ok) {
+        setTotalSessions(0)
+        toast.success('Session count reset successfully!')
+        setShowResetDialog(false)
+      } else {
+        toast.error('Failed to reset session count')
+      }
+    } catch (error) {
+      console.error('Error resetting sessions:', error)
+      toast.error('Failed to reset session count')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   // Initialize timer on mount
   useEffect(() => {
     initialize(config)
-  }, [initialize, config])
+    fetchTotalSessions()
+  }, [initialize, config, fetchTotalSessions])
 
   // Handle timer completion
   useEffect(() => {
@@ -57,15 +114,52 @@ export default function FocusPage() {
     createHotkeyConfig(' ', () => {
       if (isRunning) {
         pause()
+        toast.success('Timer paused')
       } else {
         start()
+        toast.success('Timer started')
       }
     }),
-    createHotkeyConfig('s', () => skip()),
-    createHotkeyConfig('r', () => reset()),
-    createHotkeyConfig('f', () => setPhase('FOCUS')),
-    createHotkeyConfig('b', () => setPhase('SHORT_BREAK')),
-    createHotkeyConfig('l', () => setPhase('LONG_BREAK')),
+    createHotkeyConfig('s', () => {
+      skip()
+      toast.success('Skipped to next phase')
+    }),
+    createHotkeyConfig('S', () => {
+      skip()
+      toast.success('Skipped to next phase')
+    }),
+    createHotkeyConfig('r', () => {
+      reset()
+      toast.success('Timer reset')
+    }),
+    createHotkeyConfig('R', () => {
+      reset()
+      toast.success('Timer reset')
+    }),
+    createHotkeyConfig('f', () => {
+      setPhase('FOCUS')
+      toast.success('Switched to Focus mode')
+    }),
+    createHotkeyConfig('F', () => {
+      setPhase('FOCUS')
+      toast.success('Switched to Focus mode')
+    }),
+    createHotkeyConfig('b', () => {
+      setPhase('SHORT_BREAK')
+      toast.success('Switched to Short Break')
+    }),
+    createHotkeyConfig('B', () => {
+      setPhase('SHORT_BREAK')
+      toast.success('Switched to Short Break')
+    }),
+    createHotkeyConfig('l', () => {
+      setPhase('LONG_BREAK')
+      toast.success('Switched to Long Break')
+    }),
+    createHotkeyConfig('L', () => {
+      setPhase('LONG_BREAK')
+      toast.success('Switched to Long Break')
+    }),
   ])
 
   const phaseIcons = {
@@ -169,12 +263,47 @@ export default function FocusPage() {
                       <PhaseIcon className="h-8 w-8 text-white" />
                     </div>
                   </motion.div>
-                  <div className="flex items-center justify-center space-x-3 mb-2">
-                    <h2 className="text-2xl font-bold text-white">{phaseNames[phase]}</h2>
-                    <Badge className="bg-white/10 text-white border-white/20">
-                      #{currentInterval}
-                    </Badge>
-                  </div>
+                                     <div className="text-center mb-2">
+                     <h2 className="text-2xl font-bold text-white mb-2">{phaseNames[phase]}</h2>
+                     <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+                       <DialogTrigger asChild>
+                         <Badge className="bg-white/10 text-white border-white/20 hover:bg-white/20 cursor-pointer transition-colors">
+                           #{totalSessions}
+                         </Badge>
+                       </DialogTrigger>
+                       <DialogContent className="bg-white/10 backdrop-blur-sm border-white/20">
+                         <DialogHeader>
+                           <DialogTitle className="text-white">Reset Session Count</DialogTitle>
+                           <DialogDescription className="text-gray-300">
+                             Are you sure you want to reset your session count and streak back to 0? This action cannot be undone.
+                           </DialogDescription>
+                         </DialogHeader>
+                         <DialogFooter>
+                           <Button
+                             variant="outline"
+                             onClick={() => setShowResetDialog(false)}
+                             className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+                           >
+                             Cancel
+                           </Button>
+                           <Button
+                             onClick={handleResetSessions}
+                             disabled={isResetting}
+                             className="bg-red-600 hover:bg-red-700 text-white"
+                           >
+                             {isResetting ? (
+                               <>
+                                 <ResetIcon className="mr-2 h-4 w-4 animate-spin" />
+                                 Resetting...
+                               </>
+                             ) : (
+                               'Reset Sessions'
+                             )}
+                           </Button>
+                         </DialogFooter>
+                       </DialogContent>
+                     </Dialog>
+                   </div>
                   
                 </motion.div>
 
@@ -183,13 +312,13 @@ export default function FocusPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
-                  className="mb-8"
+                  className="mb-4"
                 >
                   <TimerDisplay
                     remainingMs={remainingMs}
                     phase={phase}
                     isRunning={isRunning}
-                    className="py-8"
+                    className="py-4"
                   />
                 </motion.div>
 
@@ -215,19 +344,28 @@ export default function FocusPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.6 }}
-                  className="flex justify-center mb-6"
+                  className="flex flex-col items-center mb-6 space-y-2"
                 >
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => window.open('/tasks', '_blank')}
-                      className="bg-white/5 border-white/20 text-white hover:bg-white/10 transition-all duration-300"
+                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                     <Button
+                       variant="outline"
+                       size="lg"
+                       onClick={() => router.push('/tasks')}
+                       className="bg-white/5 border-white/20 text-white hover:bg-white/10 transition-all duration-300"
+                     >
+                       <CheckSquare className="mr-2 h-5 w-5" />
+                       {currentTaskId ? 'Change Task' : 'Select Task'}
+                     </Button>
+                   </motion.div>
+                  {currentTaskId && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-sm text-gray-300 bg-white/5 px-3 py-1 rounded-full"
                     >
-                      <CheckSquare className="mr-2 h-5 w-5" />
-                      {currentTaskId ? 'Change Task' : 'Select Task'}
-                    </Button>
-                  </motion.div>
+                      Task selected ✓
+                    </motion.div>
+                  )}
                 </motion.div>
 
                 {/* Phase Switcher */}
@@ -265,7 +403,7 @@ export default function FocusPage() {
           </motion.div>
 
           {/* Keyboard Shortcuts Card */}
-          <motion.div variants={cardVariants} className="w-full max-w-2xl">
+          <motion.div variants={cardVariants} className="w-full max-w-2xl -mt-4">
             <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] shadow-xl">
               <CardHeader className="text-center pb-4">
                 <motion.div

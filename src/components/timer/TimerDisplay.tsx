@@ -16,8 +16,22 @@ export function TimerDisplay({
   isRunning,
   className,
 }: TimerDisplayProps) {
-  const formattedTime = formatTime(remainingMs)
-  const [minutes, seconds] = formattedTime.split(':')
+  // Add error handling for invalid remainingMs
+  const safeRemainingMs = Math.max(0, remainingMs || 0)
+  
+  let formattedTime = '00:00'
+  let minutes = '00'
+  let seconds = '00'
+  
+  try {
+    formattedTime = formatTime(safeRemainingMs)
+    ;[minutes, seconds] = formattedTime.split(':')
+  } catch (error) {
+    console.error('Error formatting time:', error)
+    formattedTime = '00:00'
+    minutes = '00'
+    seconds = '00'
+  }
 
   const phaseColors = {
     FOCUS: 'text-white',

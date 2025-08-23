@@ -115,7 +115,7 @@ export function AppHeader() {
                         "relative h-10 px-4 text-sm font-medium transition-all duration-300 ease-out rounded-xl",
                         "hover:bg-white/10 hover:text-white hover:scale-105",
                         "text-gray-300",
-                        isActive && "text-white bg-white/10 shadow-lg"
+                        isActive && "text-white"
                       )}
                       asChild
                     >

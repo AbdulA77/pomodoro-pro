@@ -326,7 +326,7 @@ export default function DashboardPage() {
                     Quick Start
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    Start a new Pomodoro session
+                    Start A New Pomodoro Session
                   </p>
                   <div className="mt-auto">
                     <motion.div
@@ -437,7 +437,9 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-           {/* Quick Actions */}
+          
+
+                                                          {/* Quick Actions */}
            <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
             <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
               <CardContent className="p-6">
@@ -455,7 +457,7 @@ export default function DashboardPage() {
                     Quick Actions
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    Common tasks and shortcuts
+                    Common Tasks & Shortcuts
                   </p>
 
 
@@ -491,7 +493,7 @@ export default function DashboardPage() {
           </motion.div>
 
           {/* Today's Tasks */}
-          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
+          <motion.div variants={cardVariants} className="md:col-span-2 md:row-span-1">
             <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
               <CardContent className="p-6">
                 <div className="flex flex-col h-full">
@@ -591,46 +593,7 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Pro Tip */}
-          <motion.div variants={cardVariants} className="md:col-span-1 md:row-span-1">
-            <Card className="group relative overflow-hidden bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] h-full shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex flex-col h-full">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                    className="mb-4"
-                  >
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 w-fit">
-                      <Clock className="h-8 w-8 text-white" />
-                    </div>
-                  </motion.div>
-                  <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-purple-300 transition-colors">
-                    Pro Tip
-                  </h3>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    Boost your productivity
-                  </p>
-                  <div className="flex-1">
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-white/5">
-                        <span className="font-mono text-purple-400 font-bold">Space</span>
-                        <span className="text-gray-300">- Start/Pause</span>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-white/5">
-                        <span className="font-mono text-purple-400 font-bold">S</span>
-                        <span className="text-gray-300">- Skip</span>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-white/5">
-                        <span className="font-mono text-purple-400 font-bold">R</span>
-                        <span className="text-gray-300">- Reset</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          
         </motion.div>
       </div>
     </div>

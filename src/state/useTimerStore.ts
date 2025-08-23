@@ -67,11 +67,12 @@ export const useTimerStore = create<TimerState>()(
         const { cleanup } = get()
         cleanup()
         
-        // Create Web Worker
-        const worker = new Worker(
-          new URL('../workers/timer-worker.ts', import.meta.url),
-          { type: 'module' }
-        )
+        try {
+          // Create Web Worker
+          const worker = new Worker(
+            new URL('../workers/timer-worker.ts', import.meta.url),
+            { type: 'module' }
+          )
         
         // Handle worker messages
         worker.onmessage = (event) => {
@@ -119,11 +120,20 @@ export const useTimerStore = create<TimerState>()(
           config,
           remainingMs: getPhaseDuration('FOCUS', config),
         })
+      } catch (error) {
+        console.error('Failed to create timer worker:', error)
+        // Fallback: continue without worker, timer won't work but app won't crash
+        set({
+          worker: null,
+          config,
+          remainingMs: getPhaseDuration('FOCUS', config),
+        })
+      }
       },
       
       // Start timer
       start: () => {
-        const { worker, remainingMs, isPaused, config, phase } = get()
+        const { worker, remainingMs, isPaused, config, phase, sessionStartTime } = get()
         
         if (!worker) return
         
@@ -140,8 +150,10 @@ export const useTimerStore = create<TimerState>()(
             type: 'START',
             duration: getPhaseDuration(phase, config),
           })
-          // Track session start time for new sessions
-          set({ sessionStartTime: new Date(), sessionInterruptions: 0 })
+          // Track session start time for new sessions (only if not already tracking)
+          if (!sessionStartTime) {
+            set({ sessionStartTime: new Date(), sessionInterruptions: 0 })
+          }
         }
         
         set({ isRunning: true, isPaused: false })
@@ -222,6 +234,8 @@ export const useTimerStore = create<TimerState>()(
           remainingMs: getPhaseDuration(phase, config),
           isRunning: false,
           isPaused: false,
+          sessionStartTime: null, // Reset session tracking when manually changing phases
+          sessionInterruptions: 0,
         })
       },
       
@@ -275,10 +289,15 @@ export const useTimerStore = create<TimerState>()(
           })
           
           if (!response.ok) {
-            console.error('Failed to save session')
+            if (response.status === 401) {
+              console.log('User not authenticated, skipping session save')
+            } else {
+              console.error('Failed to save session:', response.status)
+            }
           }
         } catch (error) {
           console.error('Error saving session:', error)
+          // Don't throw error to prevent timer from breaking
         }
       },
       

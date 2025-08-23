@@ -36,10 +36,22 @@ export function TimerControls({
   return (
     <div
       className={cn(
-        'flex items-center justify-center space-x-4',
+        'flex items-center justify-center space-x-6',
         className
       )}
     >
+      {/* Reset button */}
+      <Button
+        variant="outline"
+        size="lg"
+        onClick={onReset}
+        disabled={disabled}
+        className="h-12 w-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary active:text-primary-foreground active:shadow-md"
+        aria-label="Reset timer"
+      >
+        <RotateCcw className="h-6 w-6" />
+      </Button>
+
       {/* Start/Pause button */}
       <Button
         size="lg"
@@ -53,18 +65,6 @@ export function TimerControls({
         ) : (
           <Play className="h-8 w-8" />
         )}
-      </Button>
-
-      {/* Reset button */}
-      <Button
-        variant="outline"
-        size="lg"
-        onClick={onReset}
-        disabled={disabled}
-        className="h-12 w-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary active:text-primary-foreground active:shadow-md"
-        aria-label="Reset timer"
-      >
-        <RotateCcw className="h-6 w-6" />
       </Button>
 
       {/* Skip button */}

@@ -20,7 +20,7 @@ let duration: number = 0
 let remaining: number = 0
 let isRunning: boolean = false
 
-// High-precision timer using performance.now()
+// High-precision timer using performance.now() with fallback
 const startTimer = (targetDuration: number, initialRemaining?: number) => {
   if (timerId) {
     clearInterval(timerId)
@@ -28,14 +28,18 @@ const startTimer = (targetDuration: number, initialRemaining?: number) => {
   
   duration = targetDuration
   remaining = initialRemaining ?? targetDuration
-  startTime = performance.now() - (duration - remaining)
+  
+  // Use performance.now() if available, otherwise use Date.now()
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+  startTime = now - (duration - remaining)
   isRunning = true
   
   // Send ticks every 250ms for smooth UI updates
   timerId = setInterval(() => {
     if (!isRunning) return
     
-    const elapsed = performance.now() - startTime
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    const elapsed = now - startTime
     remaining = Math.max(0, duration - elapsed)
     const isComplete = remaining <= 0
     
