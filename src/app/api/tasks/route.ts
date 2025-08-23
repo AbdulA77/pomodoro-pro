@@ -9,7 +9,8 @@ export async function GET() {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.log('Tasks API: No session or user ID found, returning empty array')
+      return NextResponse.json([])
     }
 
     const tasks = await prisma.task.findMany({

@@ -8,7 +8,31 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({
+        today: {
+          focusSessions: 0,
+          totalFocusTime: 0,
+          tasksCompleted: 0
+        },
+        week: {
+          focusSessions: 0,
+          totalFocusTime: 0
+        },
+        allTime: {
+          focusSessions: 0,
+          totalFocusTime: 0,
+          tasksCompleted: 0,
+          avgSessionDuration: 0
+        },
+        distribution: {
+          focus: 0,
+          shortBreaks: 0,
+          longBreaks: 0
+        },
+        weeklyProgress: [],
+        recentActivity: [],
+        streak: 0
+      })
     }
 
     // Get user
@@ -197,6 +221,16 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching stats:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    
+    // Log more detailed error information
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

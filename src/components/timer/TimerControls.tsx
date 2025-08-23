@@ -36,7 +36,7 @@ export function TimerControls({
   return (
     <div
       className={cn(
-        'flex items-center justify-center space-x-3 sm:space-x-6',
+        'flex items-center justify-center space-x-1.5 sm:space-x-3 lg:space-x-5',
         className
       )}
     >
@@ -46,10 +46,10 @@ export function TimerControls({
         size="lg"
         onClick={onReset}
         disabled={disabled}
-        className="h-10 w-10 sm:h-12 sm:w-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary active:text-primary-foreground active:shadow-md"
+        className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary active:text-primary-foreground active:shadow-md"
         aria-label="Reset timer"
       >
-        <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+        <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
       </Button>
 
       {/* Start/Pause button */}
@@ -57,13 +57,13 @@ export function TimerControls({
         size="lg"
         onClick={handleStartPause}
         disabled={disabled}
-        className="h-14 w-14 sm:h-16 sm:w-16 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary/90 active:shadow-lg"
+        className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 active:scale-95 active:shadow-lg"
         aria-label={isRunning ? 'Pause timer' : 'Start timer'}
       >
         {isRunning ? (
-          <Pause className="h-7 w-7 sm:h-8 sm:w-8" />
+          <Pause className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
         ) : (
-          <Play className="h-7 w-7 sm:h-8 sm:w-8" />
+          <Play className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
         )}
       </Button>
 
@@ -73,10 +73,10 @@ export function TimerControls({
         size="lg"
         onClick={onSkip}
         disabled={disabled}
-        className="h-10 w-10 sm:h-12 sm:w-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary active:text-primary-foreground active:shadow-md"
+        className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 active:bg-primary active:text-primary-foreground active:shadow-md"
         aria-label="Skip to next phase"
       >
-        <SkipForward className="h-5 w-5 sm:h-6 sm:w-6" />
+        <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
       </Button>
     </div>
   )

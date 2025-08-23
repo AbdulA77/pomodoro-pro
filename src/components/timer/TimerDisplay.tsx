@@ -44,7 +44,7 @@ export function TimerDisplay({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center space-y-4',
+        'flex flex-col items-center justify-center space-y-2 sm:space-y-3 lg:space-y-4',
         className
       )}
       role="timer"
@@ -52,7 +52,7 @@ export function TimerDisplay({
       aria-label={`${phase.toLowerCase()} timer: ${formattedTime} remaining`}
     >
       {/* Phase indicator */}
-      <div className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-muted/20 text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2 rounded-full bg-muted/20 text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">
         {phase.replace('_', ' ')}
       </div>
 
@@ -61,21 +61,21 @@ export function TimerDisplay({
         <div
           key={`${phase}-${formattedTime}`}
           className={cn(
-            'font-mono text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight text-center transition-all duration-500 ease-out',
+            'font-mono text-4xl sm:text-5xl md:text-6xl lg:text-8xl xl:text-9xl font-bold tracking-tight text-center transition-all duration-500 ease-out',
             phaseColor
           )}
         >
           <span className="inline-block min-w-[2ch] transition-transform duration-300 hover:scale-105">{minutes}</span>
-          <span className="mx-1 sm:mx-2 text-muted-foreground">:</span>
+          <span className="mx-0.5 sm:mx-1 lg:mx-2 text-muted-foreground">:</span>
           <span className="inline-block min-w-[2ch] transition-transform duration-300 hover:scale-105">{seconds}</span>
         </div>
 
-        {/* Running indicator */}
-        {isRunning && (
-          <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-6 sm:w-6 rounded-full bg-green-500 animate-pulse">
+        {/* Running indicator - removed to avoid distraction */}
+        {/* {isRunning && (
+          <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 lg:-top-2 lg:-right-2 h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6 rounded-full bg-green-500 animate-pulse">
             <div className="h-full w-full rounded-full bg-green-500 opacity-50" />
           </div>
-        )}
+        )} */}
       </div>
     </div>
   )

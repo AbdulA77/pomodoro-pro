@@ -365,7 +365,7 @@ export const useTimerStore = create<TimerState>()(
       
       // Recover timer state after page refresh
       recoverState: () => {
-        const { isRunning, isPaused, sessionStartTime, validatePersistedState, worker } = get()
+        const { isRunning, isPaused, sessionStartTime, validatePersistedState, worker, recoveryAttempted } = get()
         
         if (recoveryAttempted) return // Prevent multiple recovery attempts
         

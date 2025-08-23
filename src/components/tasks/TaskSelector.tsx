@@ -126,7 +126,7 @@ export function TaskSelector({ currentTaskId, onTaskSelect, className }: TaskSel
         
                  <DropdownMenuContent 
            align="end" 
-           className="w-[calc(100vw-2rem)] sm:w-80 max-h-96 overflow-y-auto bg-white/10 backdrop-blur-sm border-white/20"
+           className="w-[calc(100vw-2rem)] sm:w-80 max-h-96 overflow-y-auto bg-slate-800/95 backdrop-blur-md border-slate-600/50 shadow-2xl"
          >
           {loading ? (
             <DropdownMenuItem disabled className="text-gray-400">
@@ -142,7 +142,7 @@ export function TaskSelector({ currentTaskId, onTaskSelect, className }: TaskSel
                 <DropdownMenuItem
                   key={task.id}
                   onClick={() => handleTaskSelect(task.id)}
-                  className="flex flex-col items-start space-y-2 p-3 hover:bg-white/10 cursor-pointer"
+                  className="flex flex-col items-start space-y-2 p-3 hover:bg-slate-700/50 cursor-pointer border-b border-slate-700/30 last:border-b-0"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center space-x-2">
@@ -193,7 +193,7 @@ export function TaskSelector({ currentTaskId, onTaskSelect, className }: TaskSel
                         <Badge 
                           key={index} 
                           variant="outline" 
-                          className="text-xs bg-white/5 border-white/20 text-gray-300"
+                          className="text-xs bg-slate-700/50 border-slate-600/50 text-gray-200"
                         >
                           {tag}
                         </Badge>
@@ -201,7 +201,7 @@ export function TaskSelector({ currentTaskId, onTaskSelect, className }: TaskSel
                       {task.tags.length > 3 && (
                         <Badge 
                           variant="outline" 
-                          className="text-xs bg-white/5 border-white/20 text-gray-300"
+                          className="text-xs bg-slate-700/50 border-slate-600/50 text-gray-200"
                         >
                           +{task.tags.length - 3}
                         </Badge>
@@ -211,11 +211,11 @@ export function TaskSelector({ currentTaskId, onTaskSelect, className }: TaskSel
                 </DropdownMenuItem>
               ))}
               
-              <DropdownMenuSeparator className="bg-white/20" />
+              <DropdownMenuSeparator className="bg-slate-600/50" />
               
               <DropdownMenuItem
                 onClick={() => handleTaskSelect(null)}
-                className="text-gray-300 hover:bg-white/10 cursor-pointer"
+                className="text-gray-300 hover:bg-slate-700/50 cursor-pointer"
               >
                 <div className="flex items-center space-x-2">
                   <Check className="h-4 w-4" />
