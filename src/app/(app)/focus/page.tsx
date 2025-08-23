@@ -141,6 +141,8 @@ export default function FocusPage() {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* Header */}
+
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -163,18 +165,17 @@ export default function FocusPage() {
                     transition={{ duration: 0.3 }}
                     className="flex justify-center mb-4"
                   >
-                    <div className={`p-3 rounded-xl bg-gradient-to-r ${phaseColors[phase]} shadow-lg`}>
+                    <div className={`p-4 rounded-2xl bg-gradient-to-r ${phaseColors[phase]} shadow-lg`}>
                       <PhaseIcon className="h-8 w-8 text-white" />
                     </div>
                   </motion.div>
-                  <div className="flex flex-col items-center space-y-1">
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-silver-200 to-gray-400 bg-clip-text text-transparent drop-shadow-2xl tracking-wider uppercase">
-                      {phaseNames[phase]}
-                    </h2>
+                  <div className="flex items-center justify-center space-x-3 mb-2">
+                    <h2 className="text-2xl font-bold text-white">{phaseNames[phase]}</h2>
                     <Badge className="bg-white/10 text-white border-white/20">
-                      Session #{currentInterval}
+                      #{currentInterval}
                     </Badge>
                   </div>
+                  
                 </motion.div>
 
                 {/* Timer Display */}
@@ -182,13 +183,13 @@ export default function FocusPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
-                  className="mb-6"
+                  className="mb-8"
                 >
                   <TimerDisplay
                     remainingMs={remainingMs}
                     phase={phase}
                     isRunning={isRunning}
-                    className="py-6"
+                    className="py-8"
                   />
                 </motion.div>
 
@@ -197,7 +198,7 @@ export default function FocusPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.5 }}
-                  className="mb-6"
+                  className="mb-8"
                 >
                   <TimerControls
                     isRunning={isRunning}
@@ -214,9 +215,8 @@ export default function FocusPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.6 }}
-                  className="flex flex-col items-center space-y-4 mb-6"
+                  className="flex justify-center mb-6"
                 >
-                  {/* Task Selection Button */}
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button
                       variant="outline"
@@ -228,31 +228,37 @@ export default function FocusPage() {
                       {currentTaskId ? 'Change Task' : 'Select Task'}
                     </Button>
                   </motion.div>
+                </motion.div>
 
-                  {/* Phase Switcher - Under Task Selection */}
-                  <div className="flex space-x-2">
-                    {Object.entries(phaseIcons).map(([phaseKey, Icon]) => (
-                      <motion.div
-                        key={phaseKey}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                {/* Phase Switcher */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.7 }}
+                  className="flex justify-center space-x-3"
+                >
+                  {Object.entries(phaseIcons).map(([phaseKey, Icon]) => (
+                    <motion.div
+                      key={phaseKey}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button
+                        variant={phase === phaseKey ? 'default' : 'outline'}
+                        size="lg"
+                        onClick={() => setPhase(phaseKey as keyof typeof phaseIcons)}
+                        disabled={isRunning}
+                        className={`transition-all duration-300 ${
+                          phase === phaseKey
+                            ? `bg-gradient-to-r ${phaseColors[phaseKey]} text-white shadow-lg`
+                            : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                        }`}
                       >
-                        <Button
-                          variant={phase === phaseKey ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setPhase(phaseKey as keyof typeof phaseIcons)}
-                          disabled={isRunning}
-                          className={`transition-all duration-300 ${
-                            phase === phaseKey
-                              ? `bg-gradient-to-r ${phaseColors[phaseKey]} text-white shadow-xl ring-2 ring-white/30 scale-110`
-                              : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                          }`}
-                        >
-                          <Icon className={`${phase === phaseKey ? 'h-5 w-5' : 'h-4 w-4'}`} />
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </div>
+                        <Icon className="mr-2 h-5 w-5" />
+                        {phaseNames[phaseKey as keyof typeof phaseNames]}
+                      </Button>
+                    </motion.div>
+                  ))}
                 </motion.div>
               </CardContent>
             </Card>
