@@ -24,6 +24,10 @@ interface TimerState {
   sessionStartTime: Date | null
   sessionInterruptions: number
   
+  // Recovery state
+  lastActiveTime: number | null
+  recoveryAttempted: boolean
+  
   // Actions
   initialize: (config: TimeConfig) => void
   start: () => void
@@ -35,6 +39,8 @@ interface TimerState {
   updateConfig: (config: Partial<TimeConfig>) => void
   cleanup: () => void
   saveSession: () => Promise<void>
+  recoverState: () => void
+  validatePersistedState: () => boolean
 }
 
 const defaultConfig: TimeConfig = {
@@ -61,6 +67,8 @@ export const useTimerStore = create<TimerState>()(
       worker: null,
       sessionStartTime: null,
       sessionInterruptions: 0,
+      lastActiveTime: null,
+      recoveryAttempted: false,
       
       // Initialize timer with config
       initialize: (config: TimeConfig) => {
@@ -156,7 +164,11 @@ export const useTimerStore = create<TimerState>()(
           }
         }
         
-        set({ isRunning: true, isPaused: false })
+        set({ 
+          isRunning: true, 
+          isPaused: false,
+          lastActiveTime: Date.now()
+        })
       },
       
       // Pause timer
@@ -169,7 +181,8 @@ export const useTimerStore = create<TimerState>()(
         set({ 
           isRunning: false, 
           isPaused: true,
-          sessionInterruptions: sessionInterruptions + 1
+          sessionInterruptions: sessionInterruptions + 1,
+          lastActiveTime: Date.now()
         })
       },
       
@@ -259,6 +272,11 @@ export const useTimerStore = create<TimerState>()(
         set({
           config: updatedConfig,
           remainingMs: getPhaseDuration(phase, updatedConfig),
+          // Reset session tracking when config changes to prevent inconsistent state
+          sessionStartTime: null,
+          sessionInterruptions: 0,
+          isRunning: false,
+          isPaused: false,
         })
       },
       
@@ -268,10 +286,22 @@ export const useTimerStore = create<TimerState>()(
         
         if (!sessionStartTime) return
         
+        // Handle both Date objects and date strings (from persistence)
+        const startTime = sessionStartTime instanceof Date ? sessionStartTime : new Date(sessionStartTime)
         const sessionEndTime = new Date()
-        const durationSec = Math.floor((sessionEndTime.getTime() - sessionStartTime.getTime()) / 1000)
+        const durationSec = Math.floor((sessionEndTime.getTime() - startTime.getTime()) / 1000)
         
         try {
+          console.log('Saving session:', {
+            phase,
+            taskId: currentTaskId,
+            startedAt: startTime.toISOString(),
+            endedAt: sessionEndTime.toISOString(),
+            durationSec,
+            completed: true,
+            interruptions: sessionInterruptions,
+          })
+          
           const response = await fetch('/api/sessions', {
             method: 'POST',
             headers: {
@@ -280,7 +310,7 @@ export const useTimerStore = create<TimerState>()(
             body: JSON.stringify({
               phase,
               taskId: currentTaskId,
-              startedAt: sessionStartTime.toISOString(),
+              startedAt: startTime.toISOString(),
               endedAt: sessionEndTime.toISOString(),
               durationSec,
               completed: true,
@@ -288,16 +318,84 @@ export const useTimerStore = create<TimerState>()(
             }),
           })
           
-          if (!response.ok) {
-            if (response.status === 401) {
-              console.log('User not authenticated, skipping session save')
-            } else {
-              console.error('Failed to save session:', response.status)
-            }
+          if (response.ok) {
+            console.log('Session saved successfully')
+          } else if (response.status === 401) {
+            console.log('User not authenticated, skipping session save')
+          } else {
+            console.error('Failed to save session:', response.status)
           }
-        } catch (error) {
-          console.error('Error saving session:', error)
-          // Don't throw error to prevent timer from breaking
+                 } catch (error) {
+           console.error('Error saving session:', error)
+           
+           // Log more details about the error
+           if (error instanceof Error) {
+             console.error('Session save error message:', error.message)
+             console.error('Session save error stack:', error.stack)
+           }
+           
+           // Don't throw error to prevent timer from breaking
+         }
+      },
+      
+      // Validate persisted state
+      validatePersistedState: () => {
+        const { sessionStartTime, lastActiveTime, isRunning, remainingMs } = get()
+        
+        // If timer was running, check if session is still valid (within 24 hours)
+        if (isRunning && sessionStartTime && lastActiveTime) {
+          const now = Date.now()
+          const timeSinceLastActive = now - lastActiveTime
+          const maxRecoveryTime = 24 * 60 * 60 * 1000 // 24 hours
+          
+          if (timeSinceLastActive > maxRecoveryTime) {
+            console.log('Session expired, resetting timer state')
+            return false
+          }
+          
+          // Check if remaining time is reasonable
+          if (remainingMs < 0 || remainingMs > 60 * 60 * 1000) { // More than 1 hour
+            console.log('Invalid remaining time, resetting timer state')
+            return false
+          }
+        }
+        
+        return true
+      },
+      
+      // Recover timer state after page refresh
+      recoverState: () => {
+        const { isRunning, isPaused, sessionStartTime, validatePersistedState, worker } = get()
+        
+        if (recoveryAttempted) return // Prevent multiple recovery attempts
+        
+        set({ recoveryAttempted: true })
+        
+        if (!validatePersistedState()) {
+          // Reset to safe state if validation fails
+          set({
+            isRunning: false,
+            isPaused: false,
+            sessionStartTime: null,
+            sessionInterruptions: 0,
+            lastActiveTime: null,
+          })
+          return
+        }
+        
+        // If timer was running, try to recover
+        if (isRunning && worker && sessionStartTime) {
+          console.log('Recovering timer state...')
+          
+          // Update last active time
+          set({ lastActiveTime: Date.now() })
+          
+          // Resume timer if it was running
+          if (!isPaused) {
+            setTimeout(() => {
+              get().start()
+            }, 100)
+          }
         }
       },
       
@@ -321,6 +419,8 @@ export const useTimerStore = create<TimerState>()(
         totalIntervals: state.totalIntervals,
         sessionStartTime: state.sessionStartTime,
         sessionInterruptions: state.sessionInterruptions,
+        lastActiveTime: state.lastActiveTime,
+        recoveryAttempted: state.recoveryAttempted,
       }),
     }
   )

@@ -213,19 +213,47 @@ export default function SettingsPage() {
       return
     }
     
+    // Validate timer settings
+    if (key === 'pomodoroMinutes' && (value < 1 || value > 120)) {
+      toast.error('Pomodoro duration must be between 1 and 120 minutes')
+      return
+    }
+    
+    if (key === 'shortBreakMinutes' && (value < 1 || value > 30)) {
+      toast.error('Short break duration must be between 1 and 30 minutes')
+      return
+    }
+    
+    if (key === 'longBreakMinutes' && (value < 5 || value > 60)) {
+      toast.error('Long break duration must be between 5 and 60 minutes')
+      return
+    }
+    
+    if (key === 'intervalsPerLong' && (value < 1 || value > 10)) {
+      toast.error('Intervals per long break must be between 1 and 10')
+      return
+    }
+    
     setSettings(prev => ({ ...prev, [key]: value }))
     setHasUnsavedChanges(true)
     
-    // Auto-save theme changes
-    // if (key === 'theme') {
-    //   setTheme(value)
-    // }
+    // Show immediate feedback for timer-related changes
+    if (['pomodoroMinutes', 'shortBreakMinutes', 'longBreakMinutes', 'intervalsPerLong'].includes(key)) {
+      toast.info(`Timer setting updated: ${key} = ${value}`)
+    }
   }, [])
 
   const handleSaveSettings = async () => {
     setIsSaving(true)
     
     try {
+      // Check if timer is currently running
+      const { isRunning, phase } = useTimerStore.getState()
+      
+      if (isRunning) {
+        toast.info('Timer is running. Settings will be applied after the current session.')
+      }
+      
       // Update timer store with new settings
       updateConfig({
         pomodoroMinutes: settings.pomodoroMinutes,
@@ -240,8 +268,11 @@ export default function SettingsPage() {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       setHasUnsavedChanges(false)
-      toast.success('Settings saved successfully!')
+      toast.success('Settings saved successfully!', {
+        description: isRunning ? 'Changes will apply to the next session' : 'All changes applied immediately'
+      })
     } catch (error) {
+      console.error('Error saving settings:', error)
       toast.error('Failed to save settings. Please try again.')
     } finally {
       setIsSaving(false)
@@ -400,13 +431,70 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
-        {/* Settings Grid */}
+        {/* Settings Preview */}
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid gap-6 lg:grid-cols-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mb-6"
         >
+          <Card className="bg-white/5 backdrop-blur-sm border-white/10">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500">
+                  <Eye className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Current Timer Configuration</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Preview of your current timer settings
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                <div className="text-center p-3 rounded-lg bg-white/5">
+                  <div className="text-2xl font-bold text-blue-400">{settings.pomodoroMinutes}</div>
+                  <div className="text-sm text-gray-400">Focus (min)</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white/5">
+                  <div className="text-2xl font-bold text-green-400">{settings.shortBreakMinutes}</div>
+                  <div className="text-sm text-gray-400">Short Break (min)</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white/5">
+                  <div className="text-2xl font-bold text-orange-400">{settings.longBreakMinutes}</div>
+                  <div className="text-sm text-gray-400">Long Break (min)</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white/5">
+                  <div className="text-2xl font-bold text-purple-400">{settings.intervalsPerLong}</div>
+                  <div className="text-sm text-gray-400">Intervals</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={settings.autoStartBreaks ? 'default' : 'outline'} className="bg-green-500/20 text-green-300 border-green-500/30">
+                    Auto-start Breaks: {settings.autoStartBreaks ? 'On' : 'Off'}
+                  </Badge>
+                  <Badge variant={settings.autoStartPomodoros ? 'default' : 'outline'} className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                    Auto-start Pomodoros: {settings.autoStartPomodoros ? 'On' : 'Off'}
+                  </Badge>
+                  <Badge variant={settings.strictFocusMode ? 'default' : 'outline'} className="bg-red-500/20 text-red-300 border-red-500/30">
+                    Strict Mode: {settings.strictFocusMode ? 'On' : 'Off'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Settings Grid */}
+                 <motion.div
+           variants={containerVariants}
+           initial="hidden"
+           animate="visible"
+           className="grid gap-4 sm:gap-6 lg:grid-cols-2"
+         >
           {/* Timer Settings */}
           <motion.div variants={cardVariants}>
             <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
@@ -424,7 +512,7 @@ export default function SettingsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <motion.div variants={settingVariants} className="grid grid-cols-2 gap-4">
+                <motion.div variants={settingVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="pomodoro" className="text-gray-300">Focus Duration</Label>
                     <div className="relative">
@@ -467,7 +555,7 @@ export default function SettingsPage() {
                   </div>
                 </motion.div>
                 
-                <motion.div variants={settingVariants} className="grid grid-cols-2 gap-4">
+                <motion.div variants={settingVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="longBreak" className="text-gray-300">Long Break</Label>
                     <div className="relative">

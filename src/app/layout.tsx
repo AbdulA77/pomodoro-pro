@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/providers/theme-provider'
 import { QueryProvider } from '@/providers/query-provider'
 import { AuthProvider } from '@/providers/auth-provider'
+import { AccessibilityProvider } from '@/components/ui/accessibility-provider'
 import { Toaster } from 'sonner'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -29,8 +30,8 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
+    icon: '/icon.svg',
+    apple: '/icon.svg',
   },
 }
 
@@ -39,6 +40,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Note: Resource preload warnings are expected in development
+  // and don't affect production functionality
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
@@ -50,13 +53,15 @@ export default function RootLayout({
         >
           <AuthProvider>
             <QueryProvider>
-              {children}
-              <Toaster
-                position="top-right"
-                richColors
-                closeButton
-                duration={4000}
-              />
+              <AccessibilityProvider>
+                {children}
+                <Toaster
+                  position="top-right"
+                  richColors
+                  closeButton
+                  duration={4000}
+                />
+              </AccessibilityProvider>
             </QueryProvider>
           </AuthProvider>
         </ThemeProvider>

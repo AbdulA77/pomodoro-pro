@@ -25,6 +25,7 @@ model User {
   tasks         Task[]
   projects      Project[]
   timerSessions TimerSession[]
+  sessionResets SessionCounterReset[]
   tags          Tag[]
   templates     TaskTemplate[]
   createdAt     DateTime @default(now())
@@ -185,4 +186,15 @@ model TimerSession {
 
   @@index([userId, startedAt])
   @@index([userId, phase])
+}
+
+model SessionCounterReset {
+  id                  String   @id @default(cuid())
+  userId              String
+  resetAt             DateTime @default(now())
+  sessionsBeforeReset Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, resetAt])
 }

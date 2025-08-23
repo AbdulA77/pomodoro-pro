@@ -157,8 +157,19 @@ export default function DashboardPage() {
       }
     }
 
+    const handleSessionCompleted = () => {
+      if (status === 'authenticated') {
+        fetchData(true)
+      }
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('sessionCompleted', handleSessionCompleted)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('sessionCompleted', handleSessionCompleted)
+    }
   }, [fetchData, status])
 
   // Show loading state while session is loading
@@ -230,30 +241,39 @@ export default function DashboardPage() {
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
       
-      {/* Floating particles */}
-      <div className="absolute inset-0">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-white/20 rounded-full"
-            animate={{
-              x: [0, 100, 0],
-              y: [0, -100, 0],
-              opacity: [0, 1, 0],
-            }}
-            transition={{
-              duration: 10 + Math.random() * 10,
-              repeat: Infinity,
-              ease: "linear",
-              delay: Math.random() * 5,
-            }}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-          />
-        ))}
-      </div>
+             {/* Floating particles */}
+       <div className="absolute inset-0">
+         {[...Array(20)].map((_, i) => {
+           // Use a consistent seed based on index to prevent hydration mismatch
+           const seed = i * 137.5 // Use golden angle approximation for better distribution
+           const left = ((seed * 100) % 100).toFixed(2)
+           const top = (((seed * 61.8) % 100) + 50) % 100 // Offset to avoid edges
+           const duration = 10 + (seed % 10)
+           const delay = (seed % 5)
+           
+           return (
+             <motion.div
+               key={i}
+               className="absolute w-1 h-1 bg-white/20 rounded-full"
+               animate={{
+                 x: [0, 100, 0],
+                 y: [0, -100, 0],
+                 opacity: [0, 1, 0],
+               }}
+               transition={{
+                 duration,
+                 repeat: Infinity,
+                 ease: "linear",
+                 delay,
+               }}
+               style={{
+                 left: `${left}%`,
+                 top: `${top}%`,
+               }}
+             />
+           )
+         })}
+       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}

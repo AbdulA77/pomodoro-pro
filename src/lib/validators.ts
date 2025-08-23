@@ -45,7 +45,7 @@ export const taskTemplateSchema = z.object({
 
 // Timer session schemas
 export const timerSessionSchema = z.object({
-  taskId: z.string().optional(),
+  taskId: z.string().nullable().optional(),
   phase: z.enum(['FOCUS', 'SHORT_BREAK', 'LONG_BREAK']),
   startedAt: z.string(),
   endedAt: z.string().optional(),

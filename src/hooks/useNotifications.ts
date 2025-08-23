@@ -12,11 +12,15 @@ interface NotificationConfig {
 export const useNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [isSupported, setIsSupported] = useState(false)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [lastNotificationTime, setLastNotificationTime] = useState<Date | null>(null)
 
   useEffect(() => {
     setIsSupported('Notification' in window)
     if ('Notification' in window) {
-      setPermission(Notification.permission)
+      const currentPermission = Notification.permission
+      setPermission(currentPermission)
+      setIsBlocked(currentPermission === 'denied')
     }
   }, [])
 
@@ -30,6 +34,7 @@ export const useNotifications = () => {
     try {
       const result = await Notification.requestPermission()
       setPermission(result)
+      setIsBlocked(result === 'denied')
       return result === 'granted'
     } catch (error) {
       console.error('Error requesting notification permission:', error)
@@ -56,6 +61,9 @@ export const useNotifications = () => {
           requireInteraction: false,
           silent: false,
         })
+
+        // Track notification time
+        setLastNotificationTime(new Date())
 
         // Auto-close after 5 seconds
         setTimeout(() => {
@@ -131,6 +139,8 @@ export const useNotifications = () => {
   return {
     isSupported,
     permission,
+    isBlocked,
+    lastNotificationTime,
     requestPermission,
     sendNotification,
     sendTimerCompleteNotification,

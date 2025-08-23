@@ -20,31 +20,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Delete all timer sessions for this user
-    await prisma.timerSession.deleteMany({
-      where: { userId: user.id }
-    })
-
-    // Reset completed pomodoros for all tasks
-    await prisma.task.updateMany({
-      where: { userId: user.id },
-      data: { completedPomodoros: 0 }
+    // Create a session counter reset record
+    await prisma.sessionCounterReset.create({
+      data: {
+        userId: user.id,
+        resetAt: new Date(),
+        // Store the current session count before reset for reference
+        sessionsBeforeReset: await prisma.timerSession.count({
+          where: {
+            userId: user.id,
+            phase: 'FOCUS',
+            completed: true,
+            taskId: { not: 'RESET_MARKER' } // Exclude old reset markers
+          }
+        })
+      }
     })
 
     return NextResponse.json({ 
-      message: 'Session count and streak reset successfully',
-      stats: {
-        today: {
-          focusSessions: 0,
-          totalFocusTime: 0,
-          tasksCompleted: 0
-        },
-        streak: 0,
-        recentActivity: []
-      }
+      message: 'Session counter reset successfully',
+      resetAt: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Error resetting stats:', error)
+    console.error('Error resetting session counter:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

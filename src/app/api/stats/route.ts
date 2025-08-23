@@ -71,10 +71,22 @@ export async function GET(request: NextRequest) {
       orderBy: { endedAt: 'desc' }
     })
 
+    // Find the most recent session counter reset
+    const lastReset = await prisma.sessionCounterReset.findFirst({
+      where: { userId: user.id },
+      orderBy: { resetAt: 'desc' }
+    })
+
+    // Filter sessions to only include those after the most recent reset
+    const resetDate = lastReset?.resetAt || null
+    const sessionsAfterReset = resetDate 
+      ? allTimeSessions.filter(session => new Date(session.endedAt!) > resetDate)
+      : allTimeSessions
+
     // Calculate statistics
     const todayFocusTime = todaySessions.reduce((total, session) => total + (session.durationSec || 0), 0)
     const weekFocusTime = weekSessions.reduce((total, session) => total + (session.durationSec || 0), 0)
-    const totalFocusTime = allTimeSessions.reduce((total, session) => total + (session.durationSec || 0), 0)
+    const totalFocusTime = sessionsAfterReset.reduce((total, session) => total + (session.durationSec || 0), 0)
     
     const todayTasksCompleted = user.tasks.length
     const totalTasksCompleted = await prisma.task.count({
@@ -85,15 +97,24 @@ export async function GET(request: NextRequest) {
     })
 
     // Calculate average session duration
-    const avgSessionDuration = allTimeSessions.length > 0 
-      ? Math.round(allTimeSessions.reduce((total, session) => total + (session.durationSec || 0), 0) / allTimeSessions.length)
+    const avgSessionDuration = sessionsAfterReset.length > 0 
+      ? Math.round(sessionsAfterReset.reduce((total, session) => total + (session.durationSec || 0), 0) / sessionsAfterReset.length)
       : 0
 
-    // Calculate session distribution
-    const focusSessions = allTimeSessions.filter(s => s.phase === 'FOCUS').length
-    const shortBreaks = allTimeSessions.filter(s => s.phase === 'SHORT_BREAK').length
-    const longBreaks = allTimeSessions.filter(s => s.phase === 'LONG_BREAK').length
-    const totalSessions = allTimeSessions.length
+    // Calculate session distribution (only after most recent reset)
+    const focusSessions = sessionsAfterReset.filter(s => s.phase === 'FOCUS').length
+    const shortBreaks = sessionsAfterReset.filter(s => s.phase === 'SHORT_BREAK').length
+    const longBreaks = sessionsAfterReset.filter(s => s.phase === 'LONG_BREAK').length
+    const totalSessions = sessionsAfterReset.length
+    
+    console.log('Stats calculation:', {
+      totalSessions: sessionsAfterReset.length,
+      focusSessions,
+      shortBreaks,
+      longBreaks,
+      userEmail: session.user.email,
+      resetDate: resetDate?.toISOString()
+    })
 
     // Calculate weekly progress (last 7 days)
     const weeklyProgress = []
@@ -105,7 +126,7 @@ export async function GET(request: NextRequest) {
       const dayEnd = new Date(dayStart)
       dayEnd.setDate(dayEnd.getDate() + 1)
 
-      const daySessions = allTimeSessions.filter(session => {
+      const daySessions = sessionsAfterReset.filter(session => {
         const sessionDate = new Date(session.endedAt!)
         return sessionDate >= dayStart && sessionDate < dayEnd
       })
@@ -118,7 +139,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get recent activity (last 5 sessions)
-    const recentActivity = allTimeSessions.slice(0, 5).map(session => ({
+    const recentActivity = sessionsAfterReset.slice(0, 5).map(session => ({
       type: session.phase,
       duration: session.durationSec,
       completedAt: session.endedAt,
@@ -136,7 +157,7 @@ export async function GET(request: NextRequest) {
       const dayEnd = new Date(dayStart)
       dayEnd.setDate(dayEnd.getDate() + 1)
 
-      const hasSessions = allTimeSessions.some(session => {
+      const hasSessions = sessionsAfterReset.some(session => {
         const sessionDate = new Date(session.endedAt!)
         return sessionDate >= dayStart && sessionDate < dayEnd
       })
@@ -160,7 +181,7 @@ export async function GET(request: NextRequest) {
         totalFocusTime: weekFocusTime
       },
       allTime: {
-        focusSessions: allTimeSessions.length,
+        focusSessions: focusSessions,
         totalFocusTime,
         tasksCompleted: totalTasksCompleted,
         avgSessionDuration

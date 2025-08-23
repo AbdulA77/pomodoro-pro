@@ -573,7 +573,7 @@ export default function TasksPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-4 sm:gap-6 mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
         >
           <motion.div variants={cardVariants}>
             <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
@@ -841,7 +841,7 @@ export default function TasksPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className={viewMode === 'grid' ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3' : 'space-y-4'}
+          className={viewMode === 'grid' ? 'grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-4'}
         >
           <AnimatePresence>
             {filteredAndSortedTasks.map((task) => (
