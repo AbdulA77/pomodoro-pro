@@ -78,7 +78,7 @@ A high-precision Pomodoro timer designed for developers with task management, an
 
 After seeding the database, you can sign in with:
 - **Email**: `demo@pomodoro-pro.com`
-- **Password**: `demo123`
+- **Password**: `demo1234`
 
 ## ⌨️ Keyboard Shortcuts
 

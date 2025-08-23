@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -103,8 +104,24 @@ export default function SignUpPage() {
         return // Don't proceed with redirect
       }
 
-      toast.success('Account created successfully! Please sign in.')
-      router.push('/account/signin')
+      // Account created successfully, now sign in automatically
+      toast.success('Account created successfully!')
+      
+      // Automatically sign in the user
+      const signInResult = await signIn('credentials', {
+        email: validatedData.email,
+        password: validatedData.password,
+        redirect: false,
+      })
+
+      if (signInResult?.ok) {
+        toast.success('Welcome to Flowdoro!')
+        router.push('/dashboard')
+      } else {
+        // If auto sign-in fails, redirect to sign-in page
+        toast.success('Account created! Please sign in.')
+        router.push('/account/signin')
+      }
     } catch (error) {
       console.error('Registration error:', error)
       

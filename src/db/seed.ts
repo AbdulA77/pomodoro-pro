@@ -7,7 +7,7 @@ async function main() {
   console.log('🌱 Seeding database...')
 
   // Create demo user
-  const hashedPassword = await bcrypt.hash('demo123', 12)
+  const hashedPassword = await bcrypt.hash('demo1234', 12)
   
   const user = await prisma.user.upsert({
     where: { email: 'demo@pomodoro-pro.com' },
@@ -347,7 +347,7 @@ async function main() {
 
   console.log('✅ Database seeded successfully!')
   console.log('📧 Demo user: demo@pomodoro-pro.com')
-  console.log('🔑 Password: demo123')
+  console.log('🔑 Password: demo1234')
 }
 
 main()

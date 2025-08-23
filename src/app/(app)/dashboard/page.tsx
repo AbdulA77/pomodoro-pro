@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Target, Coffee, Clock, BarChart3, CheckSquare, Settings, Loader2, Zap, TrendingUp, Calendar, Star } from 'lucide-react'
+import { Target, Coffee, Clock, BarChart3, CheckSquare, Settings, Loader2, Zap, TrendingUp, Calendar, Star, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
@@ -75,7 +75,67 @@ export default function DashboardPage() {
   const [todaysTasks, setTodaysTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
+
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true)
+    }
+    
+    try {
+      // Fetch stats and tasks in parallel
+      const [statsResponse, tasksResponse] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/tasks')
+      ])
+
+      // Handle stats
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setStats(statsData)
+      } else if (statsResponse.status === 401) {
+        console.log('User not authenticated, showing default stats')
+      } else {
+        console.error('Failed to fetch stats:', statsResponse.status)
+      }
+
+      // Handle tasks
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json()
+        
+        // Filter for today's tasks (due today, in progress, or high/critical priority)
+        const today = new Date()
+        const todayString = today.toISOString().split('T')[0]
+        
+        const filteredTasks = tasksData.filter((task: Task) => {
+          // Include tasks that are:
+          // 1. Due today
+          // 2. Currently in progress
+          // 3. High or critical priority and not done
+          // 4. Recently created TODO tasks (last 3 days)
+          const isDueToday = task.dueAt && task.dueAt.startsWith(todayString)
+          const isInProgress = task.status === 'IN_PROGRESS'
+          const isHighPriority = (task.priority === 'HIGH' || task.priority === 'CRITICAL') && task.status !== 'DONE'
+          
+          return isDueToday || isInProgress || isHighPriority
+        }).slice(0, 5) // Limit to 5 tasks
+        
+        setTodaysTasks(filteredTasks)
+      } else if (tasksResponse.status !== 401) {
+        console.error('Failed to fetch tasks:', tasksResponse.status)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  const handleRefresh = () => {
+    fetchData(true)
+  }
 
   useEffect(() => {
     // Only fetch data if user is authenticated
@@ -86,58 +146,20 @@ export default function DashboardPage() {
       return
     }
 
-    const fetchData = async () => {
-      try {
-        // Fetch stats and tasks in parallel
-        const [statsResponse, tasksResponse] = await Promise.all([
-          fetch('/api/stats'),
-          fetch('/api/tasks')
-        ])
+    fetchData()
+  }, [status, router, fetchData])
 
-        // Handle stats
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          setStats(statsData)
-        } else if (statsResponse.status === 401) {
-          console.log('User not authenticated, showing default stats')
-        } else {
-          console.error('Failed to fetch stats:', statsResponse.status)
-        }
-
-        // Handle tasks
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json()
-          
-          // Filter for today's tasks (due today, in progress, or high/critical priority)
-          const today = new Date()
-          const todayString = today.toISOString().split('T')[0]
-          
-          const filteredTasks = tasksData.filter((task: Task) => {
-            // Include tasks that are:
-            // 1. Due today
-            // 2. Currently in progress
-            // 3. High or critical priority and not done
-            // 4. Recently created TODO tasks (last 3 days)
-            const isDueToday = task.dueAt && task.dueAt.startsWith(todayString)
-            const isInProgress = task.status === 'IN_PROGRESS'
-            const isHighPriority = (task.priority === 'HIGH' || task.priority === 'CRITICAL') && task.status !== 'DONE'
-            
-            return isDueToday || isInProgress || isHighPriority
-          }).slice(0, 5) // Limit to 5 tasks
-          
-          setTodaysTasks(filteredTasks)
-        } else if (tasksResponse.status !== 401) {
-          console.error('Failed to fetch tasks:', tasksResponse.status)
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
+  // Refresh data when page becomes visible (e.g., when returning from focus page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && status === 'authenticated') {
+        fetchData(true)
       }
     }
 
-    fetchData()
-  }, [status, router])
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [fetchData, status])
 
   // Show loading state while session is loading
   if (status === 'loading' || loading) {
@@ -241,22 +263,42 @@ export default function DashboardPage() {
           transition={{ duration: 0.8 }}
           className="mb-8"
         >
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-2"
-          >
-            Flowdoro
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-gray-300 text-lg"
-          >
-            Welcome back! Here&apos;s Your Productivity Overview.
-          </motion.p>
+          <div className="flex justify-between items-start">
+            <div>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-2"
+              >
+                Flowdoro
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="text-gray-300 text-lg"
+              >
+                Welcome back! Here&apos;s Your Productivity Overview.
+              </motion.p>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                variant="outline"
+                size="sm"
+                className="bg-white/5 border-white/20 text-white hover:bg-white/10 transition-all duration-300"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* Dashboard Grid */}
