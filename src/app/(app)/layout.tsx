@@ -17,7 +17,7 @@ export default async function AppLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 relative overflow-hidden">
       <AppHeader />
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen pt-24">
         <main className="flex-1">{children}</main>
       </div>
     </div>

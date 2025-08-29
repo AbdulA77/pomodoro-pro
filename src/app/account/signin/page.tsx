@@ -102,7 +102,7 @@ export default function SignInPage() {
         }
       } else {
         toast.success('Signed in successfully')
-        router.push('/focus')
+        router.push('/dashboard')
         router.refresh()
       }
     } catch (error) {

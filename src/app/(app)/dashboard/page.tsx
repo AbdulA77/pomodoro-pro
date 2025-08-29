@@ -214,7 +214,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
-        <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="relative z-10 container mx-auto px-4 pt-32 pb-8">
           <div className="flex items-center justify-center py-12">
             <motion.div
               animate={{ rotate: 360 }}
