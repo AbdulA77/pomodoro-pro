@@ -46,7 +46,7 @@ export function ProjectForm({
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const form = useForm<ProjectInput>({
+  const form = useForm<{ name: string; color: string }>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: project?.name || '',

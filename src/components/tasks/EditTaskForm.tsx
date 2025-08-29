@@ -40,7 +40,16 @@ export function EditTaskForm({ task, onTaskUpdated, trigger }: EditTaskFormProps
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const form = useForm<TaskInput>({
+  const form = useForm<{
+    title: string;
+    description?: string;
+    projectId?: string;
+    status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "DONE";
+    priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    estimatePomodoros: number;
+    dueAt?: string;
+    tags?: string[];
+  }>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
       title: task.title,

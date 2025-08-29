@@ -50,7 +50,6 @@ export default function FocusPage() {
     currentInterval,
     config,
     currentTaskId,
-    worker,
     initialize,
     start,
     pause,

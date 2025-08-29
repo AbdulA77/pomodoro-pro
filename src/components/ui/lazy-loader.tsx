@@ -76,7 +76,7 @@ export const LazyLoader: React.FC<LazyLoaderProps> = ({
   )
 }
 
-export const IntersectionObserver: React.FC<IntersectionObserverProps> = ({
+export const LazyIntersectionObserver: React.FC<IntersectionObserverProps> = ({
   children,
   fallback = <DefaultFallback />,
   threshold = 0.1,

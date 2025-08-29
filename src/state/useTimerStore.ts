@@ -26,7 +26,7 @@ interface TimerState {
   recoveryAttempted: boolean
   
   // Fallback timer
-  fallbackTimerId: number | null
+  fallbackTimerId: NodeJS.Timeout | null
   
   // Actions
   initialize: (config: TimeConfig) => void

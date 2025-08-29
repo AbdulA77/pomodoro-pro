@@ -17,9 +17,9 @@ export const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   projectId: z.string().optional(),
-  status: z.enum(['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE']).default('TODO'),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
-  estimatePomodoros: z.number().int().min(1).default(1),
+  status: z.enum(['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE']),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  estimatePomodoros: z.number().int().min(1),
   dueAt: z.string().optional(),
   tags: z.array(z.string()).optional(),
 })
@@ -29,18 +29,18 @@ export const taskUpdateSchema = taskSchema.partial()
 // Project schemas
 export const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
-  color: z.string().default('blue'),
+  color: z.string(),
 })
 
 // Task template schemas
 export const taskTemplateSchema = z.object({
   name: z.string().min(1, 'Template name is required'),
   description: z.string().optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
-  estimatePomodoros: z.number().int().min(1).default(1),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  estimatePomodoros: z.number().int().min(1),
   projectId: z.string().optional(),
   tags: z.string().optional(), // Store as comma-separated string
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 })
 
 // Timer session schemas

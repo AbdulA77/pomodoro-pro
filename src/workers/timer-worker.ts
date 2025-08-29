@@ -2,7 +2,7 @@
 // Uses performance.now() for accurate timing and postMessage for communication
 
 interface TimerMessage {
-  type: 'START' | 'PAUSE' | 'RESET' | 'SKIP' | 'SET_DURATION' | 'SYNC'
+  type: 'START' | 'PAUSE' | 'RESET' | 'SKIP' | 'SET_DURATION' | 'SYNC' | 'TEST'
   duration?: number
   remaining?: number
   timestamp?: number
@@ -15,7 +15,7 @@ interface TimerTick {
   isComplete: boolean
 }
 
-let timerId: number | null = null
+let timerId: NodeJS.Timeout | null = null
 let startTime: number = 0
 let duration: number = 0
 let remaining: number = 0
